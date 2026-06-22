@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS dmp_device;
+ALTER TABLE dmp_audience DROP COLUMN IF EXISTS status;
+ALTER TABLE dmp_audience DROP COLUMN IF EXISTS updated_at;
+DROP TABLE IF EXISTS dmp_tag;

@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: ad-server
+    static_configs:
+      - targets: ["ad-server:8080"]
+
+  - job_name: ad-manager
+    static_configs:
+      - targets: ["ad-manager:8081"]

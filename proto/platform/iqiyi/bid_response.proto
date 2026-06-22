@@ -1,0 +1,28 @@
+syntax = "proto2";
+
+package iqiyi;
+
+option go_package = "github.com/opendsp/opendsp/gen/platform/iqiyi;iqiyi";
+
+message BidResponse {
+  optional string id = 1;
+  repeated Seatbid seatbid = 2;
+  optional int32 processing_time_ms = 3;
+}
+
+message Seatbid {
+  repeated Bid bid = 1;
+}
+
+message Bid {
+  optional string id = 1;
+  optional string impid = 2;
+  optional int32 price = 3;
+  optional string adm = 4;
+  optional string crid = 5;
+  optional int32 startdelay = 6;
+  optional bool is_precision_advertising = 7;
+  optional string deeplink_url = 8;
+  optional string deeplink_app = 9;
+  optional string creative_content = 10;
+}

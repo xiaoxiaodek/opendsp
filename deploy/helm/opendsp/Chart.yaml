@@ -1,0 +1,6 @@
+apiVersion: v2
+name: opendsp
+description: OpenDSP - Open Source Demand-Side Platform
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

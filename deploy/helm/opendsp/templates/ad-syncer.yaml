@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-ad-syncer
+  labels:
+    app: ad-syncer
+spec:
+  replicas: {{ .Values.adSyncer.replicas }}
+  selector:
+    matchLabels:
+      app: ad-syncer
+  template:
+    metadata:
+      labels:
+        app: ad-syncer
+    spec:
+      containers:
+        - name: ad-syncer
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/usr/local/bin/ad-syncer"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-db
+                  key: url
+            - name: REDIS_URL
+              value: {{ .Release.Name }}-redis-master:6379
+          resources:
+            {{- toYaml .Values.adSyncer.resources | nindent 12 }}

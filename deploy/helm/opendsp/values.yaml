@@ -1,0 +1,68 @@
+replicaCount: 3
+
+image:
+  repository: opendsp/opendsp
+  tag: latest
+  pullPolicy: IfNotPresent
+
+adServer:
+  replicas: 3
+  resources:
+    requests: {cpu: "1", memory: "2Gi"}
+    limits: {cpu: "4", memory: "8Gi"}
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPU: 70
+
+adManager:
+  replicas: 2
+  resources:
+    requests: {cpu: "500m", memory: "512Mi"}
+    limits: {cpu: "1", memory: "1Gi"}
+
+adSyncer:
+  replicas: 1
+  resources:
+    requests: {cpu: "200m", memory: "256Mi"}
+
+postgresql:
+  enabled: true
+  auth:
+    database: opendsp
+    username: opendsp
+    password: opendsp
+
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: false
+
+seaweedfs:
+  enabled: true
+  master:
+    defaultReplication: "000"
+
+ingress:
+  enabled: true
+  hosts:
+    - host: ad-api.opendsp.io
+      paths:
+        - path: /api
+          service: ad-manager
+          port: 8081
+    - host: rtb.opendsp.io
+      paths:
+        - path: /
+          service: ad-server
+          port: 8080
+    - host: assets.opendsp.io
+      paths:
+        - path: /
+          service: file-gateway
+          port: 9001
+
+serviceMonitor:
+  enabled: true

@@ -1,0 +1,100 @@
+syntax = "proto2";
+
+package iqiyi;
+
+option go_package = "github.com/opendsp/opendsp/gen/platform/iqiyi;iqiyi";
+
+message BidRequest {
+  optional string id = 1;
+  optional User user = 2;
+  optional Site site = 3;
+  optional Device device = 4;
+  repeated Impression imp = 5;
+  optional bool is_test = 6;
+  optional bool is_ping = 7;
+}
+
+message Impression {
+  optional string id = 1;
+  optional Banner banner = 2;
+  optional Video video = 3;
+  repeated double floor_price = 4;
+  optional double bidfloor = 5;
+  optional string campaign_id = 6;
+  repeated string blocked_ad_tag = 7;
+  optional bool is_pmp = 8;
+}
+
+message Video {
+  optional string ad_zone_id = 1;
+  optional int32 linearity = 2;
+  optional int32 ad_type = 3;
+  optional int32 minduration = 4;
+  optional int32 maxduration = 5;
+  optional int32 protocol = 6;
+  optional int32 w = 7;
+  optional int32 h = 8;
+  optional int32 startdelay = 9;
+}
+
+message Banner {
+  optional string ad_zone_id = 1;
+  optional int32 ad_type = 2;
+  repeated int32 creative_template = 3;
+}
+
+message Site {
+  optional string id = 1;
+  optional string app_bundle_id = 2;
+  optional Content content = 3;
+}
+
+message Content {
+  optional string title = 1;
+  optional string url = 2;
+  repeated string keyword = 3;
+  optional int32 len = 4;
+  optional string album_id = 5;
+  optional string channel_id = 6;
+  repeated string tag = 7;
+  repeated string video_tag = 8;
+  optional string video_clip_id = 9;
+}
+
+message Device {
+  optional string ua = 1;
+  optional string ip = 2;
+  optional Geo geo = 3;
+  optional int32 connection_type = 4;
+  optional string platform_id = 5;
+  optional string android_id = 6;
+  optional string model = 7;
+  optional string os = 8;
+  optional string os_version = 9;
+  optional string app_version = 10;
+  optional string idfa = 11;
+  optional string imei = 12;
+  optional string mac = 13;
+  optional string oaid = 14;
+  optional int32 screen_height = 15;
+  optional int32 screen_width = 16;
+}
+
+message Geo {
+  optional string country = 1;
+  optional string metro = 2;
+  optional string city = 3;
+  optional double longitude = 4;
+  optional double latitude = 5;
+  optional string geohash = 6;
+}
+
+message User {
+  optional string id = 1;
+  optional bool is_privacy_protected = 2;
+  repeated string dmp_id = 3;
+  repeated string feature = 4;
+  optional string session = 5;
+  repeated string viewing_history = 6;
+  optional string interest_tag = 7;
+}

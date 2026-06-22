@@ -1,0 +1,25 @@
+# Binaries
+*.exe *.exe~ *.dll *.so *.dylib
+ad-server ad-manager ad-syncer
+*.test *.out
+docs/
+bin/
+dist/
+
+# Go workspace
+go.work
+
+# IDE
+.idea/ .vscode/ *.swp *.swo
+
+# Dependencies
+node_modules/
+
+# Environment
+.env .env.local
+
+# Build
+web/dist/
+/ad-manager
+/ad-server
+/ad-syncer

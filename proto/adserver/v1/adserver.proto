@@ -1,0 +1,120 @@
+syntax = "proto3";
+
+package adserver.v1;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/opendsp/opendsp/gen/adserver/v1;adserverv1";
+
+service AdServer {
+  rpc GetVastAd(VastRequest) returns (VastResponse);
+  rpc Bid(BidRequest) returns (BidResponse);
+  rpc TrackImpression(ImpressionEvent) returns (google.protobuf.Empty);
+  rpc TrackClick(ClickEvent) returns (google.protobuf.Empty);
+}
+
+message VastRequest {
+  string media_id = 1;
+  string content_id = 2;
+  string slot_id = 3;
+  int32 position_type = 4;
+  int32 width = 5;
+  int32 height = 6;
+  DeviceInfo device = 7;
+  UserInfo user = 8;
+  int32 max_duration = 9;
+}
+
+message BidRequest {
+  string request_id = 1;
+  string media_id = 2;
+  repeated Impression impressions = 3;
+  DeviceInfo device = 4;
+  UserInfo user = 5;
+  ContentInfo content = 6;
+  bool is_test = 7;
+}
+
+message Impression {
+  string imp_id = 1;
+  int32 position_type = 2;
+  int32 width = 3;
+  int32 height = 4;
+  int32 min_duration = 5;
+  int32 max_duration = 6;
+  double bid_floor = 7;
+  repeated string blocked_categories = 8;
+}
+
+message DeviceInfo {
+  string os = 1;
+  string device_type = 2;
+  string ip = 3;
+  string ua = 4;
+  string device_id = 5;
+  string carrier = 6;
+  string make = 7;
+  string model = 8;
+  string geo_city = 9;
+  int32 screen_width = 10;
+  int32 screen_height = 11;
+}
+
+message UserInfo {
+  string user_id = 1;
+  string gender = 2;
+  int32 age = 3;
+  repeated string interests = 4;
+}
+
+message ContentInfo {
+  string content_id = 1;
+  string title = 2;
+  string category = 3;
+  repeated string tags = 4;
+  int32 duration = 5;
+  string url = 6;
+}
+
+message VastResponse {
+  string request_id = 1;
+  string vast_xml = 2;
+}
+
+message BidResponse {
+  string request_id = 1;
+  repeated SeatBid seat_bids = 2;
+  int32 processing_time_ms = 3;
+}
+
+message SeatBid {
+  repeated Bid bids = 1;
+}
+
+message Bid {
+  string imp_id = 1;
+  double price = 2;
+  string adm = 3;
+  string creative_id = 4;
+  string landing_url = 5;
+  repeated string imp_trackers = 6;
+  repeated string click_trackers = 7;
+  int32 width = 8;
+  int32 height = 9;
+  int32 duration = 10;
+}
+
+message ImpressionEvent {
+  string request_id = 1;
+  int64 adgroup_id = 2;
+  int64 creative_id = 3;
+  double price = 4;
+  int64 timestamp = 5;
+}
+
+message ClickEvent {
+  string request_id = 1;
+  int64 adgroup_id = 2;
+  int64 creative_id = 3;
+  int64 timestamp = 4;
+}

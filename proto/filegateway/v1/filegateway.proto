@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package filegateway.v1;
+
+option go_package = "github.com/opendsp/opendsp/gen/filegateway/v1;filegatewayv1";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+service FileGateway {
+  rpc CreateUploadURL(CreateUploadURLReq) returns (CreateUploadURLResp) {
+    option (google.api.http) = {
+      post: "/api/v1/files/upload-url"
+      body: "*"
+    };
+  }
+  rpc GetFileInfo(GetFileInfoReq) returns (FileInfo) {
+    option (google.api.http) = {
+      get: "/api/v1/files/{file_id}"
+    };
+  }
+  rpc DeleteFile(DeleteFileReq) returns (DeleteFileResp) {
+    option (google.api.http) = {
+      delete: "/api/v1/files/{file_id}"
+    };
+  }
+}
+
+message CreateUploadURLReq {
+  string namespace = 1;
+  string filename = 2;
+  string content_type = 3;
+  int64 file_size = 4;
+}
+
+message CreateUploadURLResp {
+  string file_id = 1;
+  string upload_url = 2;
+  string public_path = 3;
+}
+
+message GetFileInfoReq {
+  string file_id = 1;
+}
+
+message FileInfo {
+  string file_id = 1;
+  string namespace = 2;
+  string filename = 3;
+  int64 size = 4;
+  string content_type = 5;
+  string md5 = 6;
+  int32 status = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+
+message DeleteFileReq {
+  string file_id = 1;
+}
+
+message DeleteFileResp {
+  bool success = 1;
+}

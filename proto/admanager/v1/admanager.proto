@@ -1,0 +1,817 @@
+syntax = "proto3";
+
+package admanager.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+
+option go_package = "github.com/opendsp/opendsp/gen/admanager/v1;admanagerv1";
+
+service AdManager {
+  rpc CreateCampaign(CreateCampaignReq) returns (Campaign) {
+    option (google.api.http) = { post: "/api/v1/campaigns" body: "*" };
+  }
+  rpc UpdateCampaign(UpdateCampaignReq) returns (Campaign) {
+    option (google.api.http) = { patch: "/api/v1/campaigns/{id}" body: "*" };
+  }
+  rpc GetCampaign(GetCampaignReq) returns (Campaign) {
+    option (google.api.http) = { get: "/api/v1/campaigns/{id}" };
+  }
+  rpc ListCampaigns(ListCampaignsReq) returns (ListCampaignsResp) {
+    option (google.api.http) = { get: "/api/v1/campaigns" };
+  }
+  rpc UpdateCampaignStatus(UpdateCampaignStatusReq) returns (Campaign) {
+    option (google.api.http) = { patch: "/api/v1/campaigns/{id}/status" body: "*" };
+  }
+  rpc CreateAdGroup(CreateAdGroupReq) returns (AdGroup) {
+    option (google.api.http) = { post: "/api/v1/campaigns/{campaign_id}/adgroups" body: "*" };
+  }
+  rpc UpdateAdGroup(UpdateAdGroupReq) returns (AdGroup) {
+    option (google.api.http) = { patch: "/api/v1/adgroups/{id}" body: "*" };
+  }
+  rpc GetAdGroup(GetAdGroupReq) returns (AdGroup) {
+    option (google.api.http) = { get: "/api/v1/adgroups/{id}" };
+  }
+  rpc ListAdGroups(ListAdGroupsReq) returns (ListAdGroupsResp) {
+    option (google.api.http) = { get: "/api/v1/adgroups" };
+  }
+  rpc UpdateAdGroupStatus(UpdateAdGroupStatusReq) returns (AdGroup) {
+    option (google.api.http) = { patch: "/api/v1/adgroups/{id}/status" body: "*" };
+  }
+  rpc CreateCreative(CreateCreativeReq) returns (Creative) {
+    option (google.api.http) = { post: "/api/v1/adgroups/{ad_group_id}/creatives" body: "*" };
+  }
+  rpc ListCreatives(ListCreativesReq) returns (ListCreativesResp) {
+    option (google.api.http) = { get: "/api/v1/creatives" };
+  }
+  rpc UpdateCreative(UpdateCreativeReq) returns (Creative) {
+    option (google.api.http) = { patch: "/api/v1/creatives/{id}" body: "*" };
+  }
+  rpc SubmitAudit(SubmitAuditReq) returns (Creative) {
+    option (google.api.http) = { post: "/api/v1/creatives/{id}/submit" body: "*" };
+  }
+  rpc GetReport(GetReportReq) returns (GetReportResp) {
+    option (google.api.http) = { get: "/api/v1/reports" };
+  }
+  rpc GetDashboard(GetDashboardReq) returns (Dashboard) {
+    option (google.api.http) = { get: "/api/v1/dashboard" };
+  }
+  rpc GetDashboardBreakdown(GetDashboardBreakdownReq) returns (GetDashboardBreakdownResp) {
+    option (google.api.http) = { get: "/api/v1/dashboard/breakdown" };
+  }
+  rpc GetEntityReport(GetEntityReportReq) returns (GetEntityReportResp) {
+    option (google.api.http) = { get: "/api/v1/reports/entity" };
+  }
+  rpc ListMedia(google.protobuf.Empty) returns (ListMediaResp) {
+    option (google.api.http) = { get: "/api/v1/media" };
+  }
+  rpc ListAdPositions(ListAdPositionsReq) returns (ListAdPositionsResp) {
+    option (google.api.http) = { get: "/api/v1/media/{media_id}/positions" };
+  }
+  rpc Login(LoginReq) returns (LoginResp) {
+    option (google.api.http) = { post: "/api/v1/auth/login" body: "*" };
+  }
+  rpc Register(RegisterReq) returns (LoginResp) {
+    option (google.api.http) = { post: "/api/v1/auth/register" body: "*" };
+  }
+
+  // Advertiser management
+  rpc CreateAdvertiser(CreateAdvertiserReq) returns (Advertiser) {
+    option (google.api.http) = { post: "/api/v1/advertisers" body: "*" };
+  }
+  rpc ListAdvertisers(ListAdvertisersReq) returns (ListAdvertisersResp) {
+    option (google.api.http) = { get: "/api/v1/advertisers" };
+  }
+  rpc GetAdvertiser(GetAdvertiserReq) returns (Advertiser) {
+    option (google.api.http) = { get: "/api/v1/advertisers/{id}" };
+  }
+  rpc UpdateAdvertiser(UpdateAdvertiserReq) returns (Advertiser) {
+    option (google.api.http) = { patch: "/api/v1/advertisers/{id}" body: "*" };
+  }
+  rpc DeleteAdvertiser(DeleteAdvertiserReq) returns (google.protobuf.Empty) {
+    option (google.api.http) = { delete: "/api/v1/advertisers/{id}" };
+  }
+  rpc SubmitQualification(SubmitQualificationReq) returns (Advertiser) {
+    option (google.api.http) = { post: "/api/v1/advertisers/{id}/submit" body: "*" };
+  }
+  rpc AuditAdvertiser(AuditAdvertiserReq) returns (Advertiser) {
+    option (google.api.http) = { post: "/api/v1/advertisers/{id}/audit" body: "*" };
+  }
+
+  // Proof material
+  rpc UploadProofMaterial(UploadProofMaterialReq) returns (ProofMaterial) {
+    option (google.api.http) = { post: "/api/v1/advertisers/{advertiser_id}/proofs" body: "*" };
+  }
+  rpc ListProofMaterials(ListProofMaterialsReq) returns (ListProofMaterialsResp) {
+    option (google.api.http) = { get: "/api/v1/advertisers/{advertiser_id}/proofs" };
+  }
+
+  // Balance
+  rpc GetBalance(GetBalanceReq) returns (Balance) {
+    option (google.api.http) = { get: "/api/v1/advertisers/{advertiser_id}/balance" };
+  }
+  rpc Recharge(RechargeReq) returns (Balance) {
+    option (google.api.http) = { post: "/api/v1/advertisers/{advertiser_id}/recharge" body: "*" };
+  }
+  rpc ListTransactions(ListTransactionsReq) returns (ListTransactionsResp) {
+    option (google.api.http) = { get: "/api/v1/advertisers/{advertiser_id}/transactions" };
+  }
+
+  // Media management
+  rpc CreateMedia(CreateMediaReq) returns (Media) {
+    option (google.api.http) = { post: "/api/v1/media" body: "*" };
+  }
+  rpc UpdateMedia(UpdateMediaReq) returns (Media) {
+    option (google.api.http) = { patch: "/api/v1/media/{id}" body: "*" };
+  }
+  rpc UpdateMediaStatus(UpdateMediaStatusReq) returns (Media) {
+    option (google.api.http) = { patch: "/api/v1/media/{id}/status" body: "*" };
+  }
+
+  // Ad position management
+  rpc CreateAdPosition(CreateAdPositionReq) returns (AdPosition) {
+    option (google.api.http) = { post: "/api/v1/media/{media_id}/positions" body: "*" };
+  }
+  rpc UpdateAdPosition(UpdateAdPositionReq) returns (AdPosition) {
+    option (google.api.http) = { patch: "/api/v1/positions/{id}" body: "*" };
+  }
+
+  // Admin
+  rpc ListUsers(ListUsersReq) returns (ListUsersResp) {
+    option (google.api.http) = { get: "/api/v1/admin/users" };
+  }
+  rpc UpdateUserRole(UpdateUserRoleReq) returns (User) {
+    option (google.api.http) = { patch: "/api/v1/admin/users/{id}/role" body: "*" };
+  }
+  rpc CreateUser(CreateUserReq) returns (User) {
+    option (google.api.http) = { post: "/api/v1/admin/users" body: "*" };
+  }
+  rpc ListPendingAudits(ListPendingAuditsReq) returns (ListPendingAuditsResp) {
+    option (google.api.http) = { get: "/api/v1/admin/audits" };
+  }
+  rpc AuditCreative(AuditCreativeReq) returns (Creative) {
+    option (google.api.http) = { post: "/api/v1/admin/creatives/{id}/audit" body: "*" };
+  }
+  // DMP
+  rpc CreateTag(CreateTagReq) returns (Tag) {
+    option (google.api.http) = {
+      post: "/api/v1/tags"
+      body: "*"
+    };
+  }
+  rpc ListTags(ListTagsReq) returns (ListTagsResp) {
+    option (google.api.http) = {
+      get: "/api/v1/tags"
+    };
+  }
+  rpc DeleteTag(DeleteTagReq) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/api/v1/tags/{id}"
+    };
+  }
+  rpc CreateAudience(CreateAudienceReq) returns (Audience) {
+    option (google.api.http) = {
+      post: "/api/v1/audiences"
+      body: "*"
+    };
+  }
+  rpc ListAudiences(ListAudiencesReq) returns (ListAudiencesResp) {
+    option (google.api.http) = {
+      get: "/api/v1/audiences"
+    };
+  }
+  rpc GetAudience(GetAudienceReq) returns (Audience) {
+    option (google.api.http) = {
+      get: "/api/v1/audiences/{id}"
+    };
+  }
+  rpc DeleteAudience(DeleteAudienceReq) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/api/v1/audiences/{id}"
+    };
+  }
+  rpc CreateLookalike(CreateLookalikeReq) returns (LookalikeTask) {
+    option (google.api.http) = {
+      post: "/api/v1/lookalikes"
+      body: "*"
+    };
+  }
+}
+
+message Tag {
+  int64 id = 1;
+  int64 advertiser_id = 2;
+  string name = 3;
+  int32 tag_type = 4;
+  int64 device_count = 5;
+  string source = 6;
+  int32 status = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+
+message CreateTagReq {
+  string name = 1;
+  int32 tag_type = 2;
+  repeated string device_ids = 3;
+  string device_type = 4;
+}
+
+message ListTagsReq {
+  int64 advertiser_id = 1;
+  optional int32 tag_type = 2;
+}
+
+message ListTagsResp {
+  repeated Tag tags = 1;
+}
+
+message DeleteTagReq {
+  int64 id = 1;
+}
+
+message Audience {
+  int64 id = 1;
+  int64 advertiser_id = 2;
+  string name = 3;
+  int32 audience_type = 4;
+  string rules = 5;
+  int64 device_count = 6;
+  int32 status = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+
+message CreateAudienceReq {
+  string name = 1;
+  int32 audience_type = 2;
+  string rules = 3;
+}
+
+message ListAudiencesReq {
+  int64 advertiser_id = 1;
+  optional int32 audience_type = 2;
+}
+
+message ListAudiencesResp {
+  repeated Audience audiences = 1;
+}
+
+message GetAudienceReq {
+  int64 id = 1;
+}
+
+message DeleteAudienceReq {
+  int64 id = 1;
+}
+
+message CreateLookalikeReq {
+  int64 seed_audience_id = 1;
+  string name = 2;
+  int32 expansion_factor = 3;
+}
+
+message LookalikeTask {
+  int64 id = 1;
+  int64 seed_audience_id = 2;
+  int64 result_tag_id = 3;
+  int32 status = 4;
+  int64 device_count = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+message Campaign {
+  int64 id = 1;
+  int64 advertiser_id = 2;
+  string name = 3;
+  optional double budget = 4;
+  optional double daily_budget = 5;
+  google.protobuf.Timestamp start_time = 6;
+  google.protobuf.Timestamp end_time = 7;
+  int32 pacing = 8;
+  int32 status = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+message CreateCampaignReq {
+  int64 advertiser_id = 1;
+  string name = 2;
+  optional double budget = 3;
+  optional double daily_budget = 4;
+  google.protobuf.Timestamp start_time = 5;
+  google.protobuf.Timestamp end_time = 6;
+  int32 pacing = 7;
+}
+
+message UpdateCampaignReq {
+  int64 id = 1;
+  optional string name = 2;
+  optional double budget = 3;
+  optional double daily_budget = 4;
+  optional google.protobuf.Timestamp start_time = 5;
+  optional google.protobuf.Timestamp end_time = 6;
+  optional int32 pacing = 7;
+}
+
+message GetCampaignReq { int64 id = 1; }
+
+message ListCampaignsReq {
+  int64 advertiser_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  optional int32 status = 4;
+}
+
+message ListCampaignsResp {
+  repeated Campaign campaigns = 1;
+  int64 total = 2;
+}
+
+message UpdateCampaignStatusReq {
+  int64 id = 1;
+  int32 status = 2;
+}
+
+message AdGroup {
+  int64 id = 1;
+  int64 campaign_id = 2;
+  string name = 3;
+  int32 bid_type = 4;
+  double bid_price = 5;
+  optional double daily_budget = 6;
+  optional int32 freq_cap = 7;
+  int32 freq_period = 8;
+  string targeting = 9;
+  int32 status = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+}
+
+message CreateAdGroupReq {
+  int64 campaign_id = 1;
+  string name = 2;
+  int32 bid_type = 3;
+  double bid_price = 4;
+  optional double daily_budget = 5;
+  optional int32 freq_cap = 6;
+  int32 freq_period = 7;
+  string targeting = 8;
+}
+
+message UpdateAdGroupReq {
+  int64 id = 1;
+  optional string name = 2;
+  optional double bid_price = 3;
+  optional double daily_budget = 4;
+  optional int32 freq_cap = 5;
+  optional string targeting = 6;
+}
+
+message GetAdGroupReq { int64 id = 1; }
+
+message ListAdGroupsReq {
+  int64 campaign_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  optional int32 status = 4;
+}
+
+message ListAdGroupsResp {
+  repeated AdGroup ad_groups = 1;
+  int64 total = 2;
+}
+
+message UpdateAdGroupStatusReq {
+  int64 id = 1;
+  int32 status = 2;
+}
+
+message Creative {
+  int64 id = 1;
+  int64 ad_group_id = 2;
+  string name = 3;
+  int32 creative_type = 4;
+  string asset_url = 5;
+  optional int32 asset_size = 6;
+  int32 asset_duration = 7;
+  int32 asset_width = 8;
+  int32 asset_height = 9;
+  string asset_mime = 10;
+  string title = 11;
+  string description = 12;
+  string cta_text = 13;
+  string brand_name = 14;
+  string brand_logo = 15;
+  string landing_url = 16;
+  string deeplink_url = 17;
+  string imp_tracker = 18;
+  string click_tracker = 19;
+  int32 audit_status = 20;
+  string audit_reason = 21;
+  google.protobuf.Timestamp created_at = 22;
+}
+
+message CreateCreativeReq {
+  int64 ad_group_id = 1;
+  string name = 2;
+  int32 creative_type = 3;
+  string asset_url = 4;
+  optional int32 asset_size = 5;
+  int32 asset_duration = 6;
+  int32 asset_width = 7;
+  int32 asset_height = 8;
+  string asset_mime = 9;
+  string title = 10;
+  string description = 11;
+  string cta_text = 12;
+  string brand_name = 13;
+  string brand_logo = 14;
+  string landing_url = 15;
+  string deeplink_url = 16;
+  string imp_tracker = 17;
+  string click_tracker = 18;
+}
+
+message ListCreativesReq {
+  int64 ad_group_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message ListCreativesResp {
+  repeated Creative creatives = 1;
+  int64 total = 2;
+}
+
+message UpdateCreativeReq {
+  int64 id = 1;
+  optional string name = 2;
+  optional string asset_url = 3;
+  optional int32 asset_width = 4;
+  optional int32 asset_height = 5;
+  optional int32 asset_duration = 6;
+  optional string title = 7;
+  optional string description = 8;
+  optional string landing_url = 9;
+  optional string imp_tracker = 10;
+  optional string click_tracker = 11;
+}
+
+message SubmitAuditReq { int64 id = 1; }
+
+message GetReportReq {
+  int64 advertiser_id = 1;
+  google.protobuf.Timestamp start_time = 2;
+  google.protobuf.Timestamp end_time = 3;
+  optional int64 campaign_id = 4;
+  optional int64 ad_group_id = 5;
+}
+
+message GetReportResp {
+  repeated ReportHourly reports = 1;
+}
+
+message ReportHourly {
+  google.protobuf.Timestamp hour = 1;
+  int64 impressions = 2;
+  int64 clicks = 3;
+  double cost = 4;
+  double ctr = 5;
+  double cpm = 6;
+  int64 conversions = 7;
+  double revenue = 8;
+}
+
+message GetDashboardReq {
+  int64 advertiser_id = 1;
+}
+
+message Dashboard {
+  double today_cost = 1;
+  int64 today_impressions = 2;
+  int64 today_clicks = 3;
+  double today_ctr = 4;
+  double balance = 5;
+  int64 active_campaigns = 6;
+  int64 active_ad_groups = 7;
+}
+
+message GetDashboardBreakdownReq {
+  int64 advertiser_id = 1;
+  string dimension = 2;
+  int32 top_n = 3;
+}
+
+message DimensionItem {
+  int64 id = 1;
+  string name = 2;
+  int64 impressions = 3;
+  int64 clicks = 4;
+  double ctr = 5;
+  double cost = 6;
+  double cpm = 7;
+}
+
+message GetDashboardBreakdownResp {
+  repeated DimensionItem items = 1;
+}
+
+message GetEntityReportReq {
+  int64 advertiser_id = 1;
+  string entity_type = 2;
+  int64 entity_id = 3;
+  google.protobuf.Timestamp start_time = 4;
+  google.protobuf.Timestamp end_time = 5;
+}
+
+message GetEntityReportResp {
+  double today_cost = 1;
+  int64 today_impressions = 2;
+  int64 today_clicks = 3;
+  double today_ctr = 4;
+  repeated ReportHourly hourly = 5;
+  repeated DimensionItem sub_items = 6;
+}
+
+message ListMediaResp {
+  repeated Media media = 1;
+}
+
+message Media {
+  int64 id = 1;
+  string name = 2;
+  string code = 3;
+  string domain = 4;
+}
+
+message ListAdPositionsReq { int64 media_id = 1; }
+
+message ListAdPositionsResp {
+  repeated AdPosition positions = 1;
+}
+
+message AdPosition {
+  int64 id = 1;
+  int64 media_id = 2;
+  string name = 3;
+  int32 position_type = 4;
+  int32 ad_format = 5;
+  int32 width = 6;
+  int32 height = 7;
+  int32 max_size = 8;
+  int32 duration_min = 9;
+  int32 duration_max = 10;
+}
+
+message LoginReq {
+  string email = 1;
+  string password = 2;
+}
+
+message RegisterReq {
+  string email = 1;
+  string password = 2;
+  string name = 3;
+}
+
+message LoginResp {
+  string token = 1;
+  int64 user_id = 2;
+  string email = 3;
+  string name = 4;
+  int64 advertiser_id = 5;
+  string role = 6;
+  string error = 7;
+}
+
+// Advertiser
+message Advertiser {
+  int64 id = 1;
+  string name = 2;
+  string industry = 3;
+  string contact_name = 4;
+  string contact_email = 5;
+  double balance = 6;
+  int32 status = 7;
+  int32 qualification_status = 8;
+  string qualification_reason = 9;
+  double credit_limit = 10;
+  string address = 11;
+  string website = 12;
+  string brand_names = 13;
+  google.protobuf.Timestamp created_at = 14;
+  google.protobuf.Timestamp updated_at = 15;
+}
+
+message ListAdvertisersReq {
+  int32 page = 1;
+  int32 page_size = 2;
+  optional int32 status = 3;
+  optional int32 qualification_status = 4;
+}
+
+message ListAdvertisersResp {
+  repeated Advertiser advertisers = 1;
+  int64 total = 2;
+}
+
+message GetAdvertiserReq { int64 id = 1; }
+
+message CreateAdvertiserReq {
+  string name = 1;
+  optional string industry = 2;
+  optional string contact_name = 3;
+  optional string contact_email = 4;
+  optional string address = 5;
+  optional string website = 6;
+  optional string brand_names = 7;
+}
+
+message UpdateAdvertiserReq {
+  int64 id = 1;
+  optional string name = 2;
+  optional string industry = 3;
+  optional string contact_name = 4;
+  optional string contact_email = 5;
+  optional string address = 6;
+  optional string website = 7;
+  optional string brand_names = 8;
+}
+
+message SubmitQualificationReq { int64 id = 1; }
+
+message DeleteAdvertiserReq { int64 id = 1; }
+
+message AuditAdvertiserReq {
+  int64 id = 1;
+  int32 qualification_status = 2;
+  string qualification_reason = 3;
+}
+
+// Proof material
+message ProofMaterial {
+  int64 id = 1;
+  int64 advertiser_id = 2;
+  int32 material_type = 3;
+  string file_url = 4;
+  string file_name = 5;
+  int32 file_size = 6;
+  int32 audit_status = 7;
+  string audit_reason = 8;
+  google.protobuf.Timestamp created_at = 9;
+}
+
+message UploadProofMaterialReq {
+  int64 advertiser_id = 1;
+  int32 material_type = 2;
+  string file_url = 3;
+  string file_name = 4;
+  int32 file_size = 5;
+}
+
+message ListProofMaterialsReq { int64 advertiser_id = 1; }
+
+message ListProofMaterialsResp {
+  repeated ProofMaterial materials = 1;
+}
+
+// Balance
+message Balance {
+  int64 advertiser_id = 1;
+  double balance = 2;
+  double credit_limit = 3;
+}
+
+message GetBalanceReq { int64 advertiser_id = 1; }
+
+message RechargeReq {
+  int64 advertiser_id = 1;
+  double amount = 2;
+  string description = 3;
+}
+
+message BalanceTransaction {
+  int64 id = 1;
+  int64 advertiser_id = 2;
+  double amount = 3;
+  double balance_before = 4;
+  double balance_after = 5;
+  int32 tx_type = 6;
+  string description = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+
+message ListTransactionsReq {
+  int64 advertiser_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message ListTransactionsResp {
+  repeated BalanceTransaction transactions = 1;
+  int64 total = 2;
+}
+
+// Media management
+message CreateMediaReq {
+  string name = 1;
+  string code = 2;
+  string domain = 3;
+}
+
+message UpdateMediaReq {
+  int64 id = 1;
+  optional string name = 2;
+  optional string domain = 3;
+}
+
+message UpdateMediaStatusReq {
+  int64 id = 1;
+  int32 status = 2;
+}
+
+// Ad position management
+message CreateAdPositionReq {
+  int64 media_id = 1;
+  string name = 2;
+  int32 position_type = 3;
+  int32 ad_format = 4;
+  int32 width = 5;
+  int32 height = 6;
+  int32 max_size = 7;
+  int32 duration_min = 8;
+  int32 duration_max = 9;
+  string mime_types = 10;
+}
+
+message UpdateAdPositionReq {
+  int64 id = 1;
+  optional string name = 2;
+  optional int32 width = 3;
+  optional int32 height = 4;
+  optional int32 max_size = 5;
+  optional int32 duration_min = 6;
+  optional int32 duration_max = 7;
+}
+
+// Admin
+message User {
+  int64 id = 1;
+  string email = 2;
+  string name = 3;
+  int64 advertiser_id = 4;
+  string role = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+message ListUsersReq {
+  int32 page = 1;
+  int32 page_size = 2;
+  optional string role = 3;
+}
+
+message ListUsersResp {
+  repeated User users = 1;
+  int64 total = 2;
+}
+
+message UpdateUserRoleReq {
+  int64 id = 1;
+  string role = 2;
+}
+
+message CreateUserReq {
+  string email = 1;
+  string password = 2;
+  string name = 3;
+  optional int64 advertiser_id = 4;
+  string role = 5;
+}
+
+message ListPendingAuditsReq {
+  int32 page = 1;
+  int32 page_size = 2;
+  optional int32 audit_type = 3;
+}
+
+message PendingAudit {
+  int64 id = 1;
+  int32 audit_type = 2;
+  string name = 3;
+  int64 advertiser_id = 4;
+  string advertiser_name = 5;
+  int32 status = 6;
+  string reason = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+
+message ListPendingAuditsResp {
+  repeated PendingAudit audits = 1;
+  int64 total = 2;
+}
+
+message AuditCreativeReq {
+  int64 id = 1;
+  int32 audit_status = 2;
+  string audit_reason = 3;
+}
