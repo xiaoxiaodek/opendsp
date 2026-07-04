@@ -1,6 +1,6 @@
 # Binaries
 *.exe *.exe~ *.dll *.so *.dylib
-ad-server ad-manager ad-syncer
+ad-server ad-manager ad-syncer clickhouse-writer feature-store file-gateway mockadx roi-daemon
 *.test *.out
 docs/superpowers/
 bin/
@@ -17,6 +17,10 @@ node_modules/
 
 # Environment
 .env .env.local
+
+# Generated files
+report.json
+session-*.md
 
 # Build
 web/dist/
