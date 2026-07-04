@@ -25,3 +25,9 @@ UPDATE creative SET audit_status = $1, version = version + 1, updated_at = NOW()
 
 -- name: UpdateCreativeAuditStatus :exec
 UPDATE creative SET audit_status = $1, audit_reason = $2, version = version + 1, updated_at = NOW() WHERE id = $3;
+
+-- name: UpdateCreative :exec
+UPDATE creative SET name=$1, asset_url=$2, asset_width=$3, asset_height=$4, asset_duration=$5,
+  title=$6, description=$7, landing_url=$8, imp_tracker=$9, click_tracker=$10,
+  version=version+1, updated_at=NOW()
+WHERE id=$11 AND version=$12;

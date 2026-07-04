@@ -11,6 +11,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countActiveCampaignsByAdvertiser = `-- name: CountActiveCampaignsByAdvertiser :one
+SELECT COUNT(*) FROM campaign WHERE advertiser_id = $1 AND status = 1
+`
+
+func (q *Queries) CountActiveCampaignsByAdvertiser(ctx context.Context, advertiserID int64) (int64, error) {
+	row := q.db.QueryRow(ctx, countActiveCampaignsByAdvertiser, advertiserID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countCampaigns = `-- name: CountCampaigns :one
 SELECT COUNT(*) FROM campaign WHERE advertiser_id = $1
   AND ($2::smallint IS NULL OR status = $2::smallint)

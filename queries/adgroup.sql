@@ -32,3 +32,7 @@ SELECT ag.id, ag.campaign_id, ag.name, ag.bid_type, ag.bid_price, ag.daily_budge
 FROM ad_group ag
 INNER JOIN campaign c ON c.id = ag.campaign_id
 WHERE ag.status = $1 AND c.status = $2;
+
+-- name: CountActiveAdGroupsByAdvertiser :one
+SELECT COUNT(*) FROM ad_group ag JOIN campaign c ON ag.campaign_id = c.id
+WHERE c.advertiser_id = $1 AND ag.status = 1;

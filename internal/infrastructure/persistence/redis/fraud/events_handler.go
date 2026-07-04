@@ -6,16 +6,18 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/opendsp/opendsp/internal/data/dbsqlc"
 )
 
 // EventsHandler serves fraud_events query endpoints.
 type EventsHandler struct {
-	pool *pgxpool.Pool
+	pool    *pgxpool.Pool
+	queries *dbsqlc.Queries
 }
 
 // NewEventsHandler creates an events query handler.
 func NewEventsHandler(pool *pgxpool.Pool) *EventsHandler {
-	return &EventsHandler{pool: pool}
+	return &EventsHandler{pool: pool, queries: dbsqlc.New(pool)}
 }
 
 type fraudEventRow struct {
@@ -65,46 +67,41 @@ func (h *EventsHandler) listEvents(w http.ResponseWriter, r *http.Request) {
 	if pageSize < 1 || pageSize > 100 {
 		pageSize = 20
 	}
-	offset := (page - 1) * pageSize
+	offset := int32((page - 1) * pageSize)
 
-	startDate := q.Get("start_date")
-	endDate := q.Get("end_date")
-	if startDate == "" {
-		startDate = time.Now().Add(-24 * time.Hour).Format(time.RFC3339)
-	}
-	if endDate == "" {
-		endDate = time.Now().Format(time.RFC3339)
-	}
+	startDate, endDate := parseDateRange(q.Get("start_date"), q.Get("end_date"))
 
-	var total int64
-	err := h.pool.QueryRow(r.Context(),
-		`SELECT COUNT(*) FROM fraud_events WHERE created_at >= $1 AND created_at <= $2`,
-		startDate, endDate,
-	).Scan(&total)
+	total, err := h.queries.CountFraudEvents(r.Context(), &dbsqlc.CountFraudEventsParams{
+		CreatedAt:   startDate,
+		CreatedAt_2: endDate,
+	})
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
 
-	rows, err := h.pool.Query(r.Context(),
-		`SELECT id, request_id, rule_type, rule_value, COALESCE(risk_score, 0), action, created_at
-		 FROM fraud_events WHERE created_at >= $1 AND created_at <= $2
-		 ORDER BY created_at DESC LIMIT $3 OFFSET $4`,
-		startDate, endDate, pageSize, offset,
-	)
+	rows, err := h.queries.ListFraudEvents(r.Context(), &dbsqlc.ListFraudEventsParams{
+		CreatedAt:   startDate,
+		CreatedAt_2: endDate,
+		Limit:       int32(pageSize),
+		Offset:      offset,
+	})
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
-	defer rows.Close()
 
 	var items []fraudEventRow
-	for rows.Next() {
-		var row fraudEventRow
-		if err := rows.Scan(&row.ID, &row.RequestID, &row.RuleType, &row.RuleValue, &row.RiskScore, &row.Action, &row.CreatedAt); err != nil {
-			continue
-		}
-		items = append(items, row)
+	for _, row := range rows {
+		items = append(items, fraudEventRow{
+			ID:        row.ID,
+			RequestID: row.RequestID,
+			RuleType:  row.RuleType,
+			RuleValue: row.RuleValue,
+			RiskScore: row.RiskScore,
+			Action:    row.Action,
+			CreatedAt: row.CreatedAt,
+		})
 	}
 
 	writeJSON(w, http.StatusOK, eventsResponse{Items: items, Total: total})
@@ -112,32 +109,43 @@ func (h *EventsHandler) listEvents(w http.ResponseWriter, r *http.Request) {
 
 func (h *EventsHandler) getStats(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	startDate := q.Get("start_date")
-	endDate := q.Get("end_date")
-	if startDate == "" {
-		startDate = time.Now().Add(-24 * time.Hour).Format(time.RFC3339)
-	}
-	if endDate == "" {
-		endDate = time.Now().Format(time.RFC3339)
-	}
+	startDate, endDate := parseDateRange(q.Get("start_date"), q.Get("end_date"))
 
-	var stats statsResponse
-	err := h.pool.QueryRow(r.Context(),
-		`SELECT
-			COUNT(*) as total,
-			COUNT(*) FILTER (WHERE action = 'blocked') as blocked,
-			COUNT(*) FILTER (WHERE action = 'flagged') as flagged
-		 FROM fraud_events WHERE created_at >= $1 AND created_at <= $2`,
-		startDate, endDate,
-	).Scan(&stats.TotalRequests, &stats.Blocked, &stats.Flagged)
+	stats, err := h.queries.GetFraudEventStats(r.Context(), &dbsqlc.GetFraudEventStatsParams{
+		CreatedAt:   startDate,
+		CreatedAt_2: endDate,
+	})
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
 
-	if stats.TotalRequests > 0 {
-		stats.BlockRate = float64(stats.Blocked) / float64(stats.TotalRequests) * 100
+	resp := statsResponse{
+		TotalRequests: stats.Total,
+		Blocked:       stats.Blocked,
+		Flagged:       stats.Flagged,
+	}
+	if stats.Total > 0 {
+		resp.BlockRate = float64(stats.Blocked) / float64(stats.Total) * 100
 	}
 
-	writeJSON(w, http.StatusOK, stats)
+	writeJSON(w, http.StatusOK, resp)
+}
+
+func parseDateRange(start, end string) (time.Time, time.Time) {
+	now := time.Now()
+	var startDate, endDate time.Time
+	if start != "" {
+		startDate, _ = time.Parse(time.RFC3339, start)
+	}
+	if startDate.IsZero() {
+		startDate = now.Add(-24 * time.Hour)
+	}
+	if end != "" {
+		endDate, _ = time.Parse(time.RFC3339, end)
+	}
+	if endDate.IsZero() {
+		endDate = now
+	}
+	return startDate, endDate
 }

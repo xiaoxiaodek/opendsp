@@ -144,3 +144,18 @@ SELECT id, 2 as audit_type, name, id as advertiser_id, name as advertiser_name,
 FROM advertiser
 WHERE COALESCE(qualification_status, 0) = 0
 ORDER BY created_at ASC LIMIT $1 OFFSET $2;
+
+-- Dashboard & auth queries
+
+-- name: ListActiveAdvertisers :many
+SELECT id, COALESCE(balance, 0)::float8 AS balance FROM advertiser WHERE status = 1;
+
+-- name: GetUserByEmail :one
+SELECT id, email, name, COALESCE(advertiser_id, 0) as advertiser_id, role, password_hash
+FROM users WHERE email = $1;
+
+-- name: CreateAdvertiserSimple :exec
+INSERT INTO advertiser (name) VALUES ($1);
+
+-- name: GetAdvertiserByName :one
+SELECT id FROM advertiser WHERE name = $1 ORDER BY id DESC LIMIT 1;

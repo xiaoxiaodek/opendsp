@@ -136,6 +136,15 @@ func (q *Queries) CreateAdvertiser(ctx context.Context, arg *CreateAdvertiserPar
 	return id, err
 }
 
+const createAdvertiserSimple = `-- name: CreateAdvertiserSimple :exec
+INSERT INTO advertiser (name) VALUES ($1)
+`
+
+func (q *Queries) CreateAdvertiserSimple(ctx context.Context, name string) error {
+	_, err := q.db.Exec(ctx, createAdvertiserSimple, name)
+	return err
+}
+
 const createBalanceTransaction = `-- name: CreateBalanceTransaction :exec
 INSERT INTO balance_transaction (advertiser_id, amount, balance_before, balance_after, tx_type, description, operator_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -306,6 +315,76 @@ func (q *Queries) GetAdvertiserBalance(ctx context.Context, id int64) (*GetAdver
 	var i GetAdvertiserBalanceRow
 	err := row.Scan(&i.Balance, &i.CreditLimit)
 	return &i, err
+}
+
+const getAdvertiserByName = `-- name: GetAdvertiserByName :one
+SELECT id FROM advertiser WHERE name = $1 ORDER BY id DESC LIMIT 1
+`
+
+func (q *Queries) GetAdvertiserByName(ctx context.Context, name string) (int64, error) {
+	row := q.db.QueryRow(ctx, getAdvertiserByName, name)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
+const getUserByEmail = `-- name: GetUserByEmail :one
+SELECT id, email, name, COALESCE(advertiser_id, 0) as advertiser_id, role, password_hash
+FROM users WHERE email = $1
+`
+
+type GetUserByEmailRow struct {
+	ID           int64   `json:"id"`
+	Email        string  `json:"email"`
+	Name         *string `json:"name"`
+	AdvertiserID int64   `json:"advertiser_id"`
+	Role         *string `json:"role"`
+	PasswordHash string  `json:"password_hash"`
+}
+
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (*GetUserByEmailRow, error) {
+	row := q.db.QueryRow(ctx, getUserByEmail, email)
+	var i GetUserByEmailRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Name,
+		&i.AdvertiserID,
+		&i.Role,
+		&i.PasswordHash,
+	)
+	return &i, err
+}
+
+const listActiveAdvertisers = `-- name: ListActiveAdvertisers :many
+
+SELECT id, COALESCE(balance, 0)::float8 AS balance FROM advertiser WHERE status = 1
+`
+
+type ListActiveAdvertisersRow struct {
+	ID      int64   `json:"id"`
+	Balance float64 `json:"balance"`
+}
+
+// Dashboard & auth queries
+func (q *Queries) ListActiveAdvertisers(ctx context.Context) ([]*ListActiveAdvertisersRow, error) {
+	rows, err := q.db.Query(ctx, listActiveAdvertisers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []*ListActiveAdvertisersRow
+	for rows.Next() {
+		var i ListActiveAdvertisersRow
+		if err := rows.Scan(&i.ID, &i.Balance); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listAdPositionsByMedia = `-- name: ListAdPositionsByMedia :many

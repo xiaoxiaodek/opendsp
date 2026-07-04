@@ -5,8 +5,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 
-	"github.com/opendsp/opendsp/internal/middleware"
 	pb "github.com/opendsp/opendsp/gen/admanager/v1"
+	"github.com/opendsp/opendsp/internal/data/dbsqlc"
+	"github.com/opendsp/opendsp/internal/middleware"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -17,29 +18,31 @@ func hashPassword(password string) string {
 }
 
 func (s *AdManagerService) Login(ctx context.Context, req *pb.LoginReq) (*pb.LoginResp, error) {
-	var id, advertiserID int64
-	var email, name, role, passwordHash string
-
-	err := s.data.Pool.QueryRow(ctx,
-		`SELECT id, email, name, COALESCE(advertiser_id, 0), role, password_hash FROM users WHERE email = $1`,
-		req.Email,
-	).Scan(&id, &email, &name, &advertiserID, &role, &passwordHash)
-
-	if err != nil || passwordHash != hashPassword(req.Password) {
+	row, err := s.data.Queries.GetUserByEmail(ctx, req.Email)
+	if err != nil || row.PasswordHash != hashPassword(req.Password) {
 		return nil, status.Errorf(codes.Unauthenticated, "invalid email or password")
 	}
 
-	token, err := middleware.GenerateToken(id, advertiserID, role)
+	role := ""
+	if row.Role != nil {
+		role = *row.Role
+	}
+	name := ""
+	if row.Name != nil {
+		name = *row.Name
+	}
+
+	token, err := middleware.GenerateToken(row.ID, row.AdvertiserID, role)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "token generation failed")
 	}
 
 	return &pb.LoginResp{
 		Token:        token,
-		UserId:       id,
-		Email:        email,
+		UserId:       row.ID,
+		Email:        row.Email,
 		Name:         name,
-		AdvertiserId: advertiserID,
+		AdvertiserId: row.AdvertiserID,
 		Role:         role,
 	}, nil
 }
@@ -49,25 +52,27 @@ func (s *AdManagerService) Register(ctx context.Context, req *pb.RegisterReq) (*
 		return nil, status.Errorf(codes.InvalidArgument, "email and password (min 6 chars) required")
 	}
 
-	var existingID int64
-	s.data.Pool.QueryRow(ctx, `SELECT id FROM users WHERE email = $1`, req.Email).Scan(&existingID)
-	if existingID > 0 {
+	// Check existing user
+	existing, _ := s.data.Queries.GetUserByEmail(ctx, req.Email)
+	if existing != nil && existing.ID > 0 {
 		return nil, status.Errorf(codes.AlreadyExists, "email already registered")
 	}
 
-	_, err := s.data.Pool.Exec(ctx, `INSERT INTO advertiser (name) VALUES ($1)`, req.Name)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "create advertiser failed")
-	}
+	// Create advertiser
+	_ = s.data.Queries.CreateAdvertiserSimple(ctx, req.Name)
 
-	var advertiserID int64
-	s.data.Pool.QueryRow(ctx, `SELECT id FROM advertiser WHERE name = $1 ORDER BY id DESC LIMIT 1`, req.Name).Scan(&advertiserID)
+	advertiserID, _ := s.data.Queries.GetAdvertiserByName(ctx, req.Name)
 
-	var id int64
-	err = s.data.Pool.QueryRow(ctx,
-		`INSERT INTO users (email, password_hash, name, advertiser_id, role) VALUES ($1, $2, $3, $4, 'admin') RETURNING id`,
-		req.Email, hashPassword(req.Password), req.Name, advertiserID,
-	).Scan(&id)
+	// Create user
+	role := "admin"
+	name := &req.Name
+	id, err := s.data.Queries.CreateUser(ctx, &dbsqlc.CreateUserParams{
+		Email:        req.Email,
+		PasswordHash: hashPassword(req.Password),
+		Name:         name,
+		AdvertiserID: &advertiserID,
+		Role:         &role,
+	})
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "create user failed")
 	}

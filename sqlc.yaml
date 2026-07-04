@@ -2,13 +2,8 @@ version: "2"
 sql:
   - engine: "postgresql"
     queries: "queries"
-    schema: 
+    schema:
       - "migrations/001_init.up.sql"
-      - "migrations/002_advertiser.up.sql"
-      - "migrations/004_attribution.up.sql"
-      - "migrations/005_file_gateway.up.sql"
-      - "migrations/007_dmp.up.sql"
-      - "migrations/008_platform_sync.up.sql"
     gen:
       go:
         package: "dbsqlc"

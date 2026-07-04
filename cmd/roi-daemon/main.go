@@ -9,8 +9,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/opendsp/opendsp/internal/config"
+	"github.com/opendsp/opendsp/internal/data/dbsqlc"
 	"github.com/opendsp/opendsp/internal/infrastructure/pid"
 	"github.com/redis/go-redis/v9"
 )
@@ -73,30 +75,20 @@ func runLoop(ctx context.Context, pool *pgxpool.Pool, rdb *redis.Client, targetR
 }
 
 func adjustBids(ctx context.Context, pool *pgxpool.Pool, rdb *redis.Client, controllers map[string]*pid.Controller, targetROAS, kp, ki, kd float64) {
-	query := `
-		SELECT advertiser_id, COALESCE(campaign_id, 0),
-			SUM(cost_micros), SUM(revenue_micros)
-		FROM roi_metrics
-		WHERE date >= $1
-		GROUP BY advertiser_id, COALESCE(campaign_id, 0)
-		HAVING SUM(cost_micros) > 0
-	`
+	queries := dbsqlc.New(pool)
 
-	rows, err := pool.Query(ctx, query, time.Now().Add(-24*time.Hour).Format("2006-01-02"))
+	var pgDate pgtype.Date
+	_ = pgDate.Scan(time.Now().Add(-24 * time.Hour).Format("2006-01-02"))
+
+	rows, err := queries.ListROIMetricsByAdvertiser(ctx, pgDate)
 	if err != nil {
 		log.Printf("roi-daemon: query roi_metrics: %v", err)
 		return
 	}
-	defer rows.Close()
 
-	for rows.Next() {
-		var m ROIMetrics
-		if err := rows.Scan(&m.AdvertiserID, &m.CampaignID, &m.CostMicros, &m.RevenueMicros); err != nil {
-			continue
-		}
-
-		actualROAS := float64(m.RevenueMicros) / float64(m.CostMicros)
-		key := fmt.Sprintf("%d:%d", m.AdvertiserID, m.CampaignID)
+	for _, row := range rows {
+		actualROAS := float64(row.RevenueMicros) / float64(row.CostMicros)
+		key := fmt.Sprintf("%d:%d", row.AdvertiserID, row.CampaignID)
 
 		ctrl, ok := controllers[key]
 		if !ok {

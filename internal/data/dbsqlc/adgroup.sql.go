@@ -12,6 +12,18 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countActiveAdGroupsByAdvertiser = `-- name: CountActiveAdGroupsByAdvertiser :one
+SELECT COUNT(*) FROM ad_group ag JOIN campaign c ON ag.campaign_id = c.id
+WHERE c.advertiser_id = $1 AND ag.status = 1
+`
+
+func (q *Queries) CountActiveAdGroupsByAdvertiser(ctx context.Context, advertiserID int64) (int64, error) {
+	row := q.db.QueryRow(ctx, countActiveAdGroupsByAdvertiser, advertiserID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countAdGroups = `-- name: CountAdGroups :one
 SELECT COUNT(*) FROM ad_group WHERE ($1::bigint IS NULL OR $1::bigint = 0 OR campaign_id = $1::bigint)
   AND ($2::smallint IS NULL OR status = $2::smallint)

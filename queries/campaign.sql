@@ -24,3 +24,6 @@ SELECT id, advertiser_id, name, budget, daily_budget, start_time, end_time, paci
 FROM campaign WHERE advertiser_id = $1
   AND (sqlc.narg('status')::smallint IS NULL OR status = sqlc.narg('status')::smallint)
 ORDER BY created_at DESC LIMIT $2 OFFSET $3;
+
+-- name: CountActiveCampaignsByAdvertiser :one
+SELECT COUNT(*) FROM campaign WHERE advertiser_id = $1 AND status = 1;

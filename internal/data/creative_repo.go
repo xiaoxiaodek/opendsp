@@ -101,15 +101,28 @@ func (r *creativeRepo) ListApprovedByAdGroup(ctx context.Context, adGroupID int6
 }
 
 func (r *creativeRepo) Update(ctx context.Context, c *biz.Creative) error {
-	_, err := r.data.Pool.Exec(ctx,
-		`UPDATE creative SET name=$1, asset_url=$2, asset_width=$3, asset_height=$4, asset_duration=$5,
-		 title=$6, description=$7, landing_url=$8, imp_tracker=$9, click_tracker=$10,
-		 version=version+1, updated_at=NOW()
-		 WHERE id=$11 AND version=$12`,
-		c.Name, c.AssetURL, c.AssetWidth, c.AssetHeight, c.AssetDuration,
-		c.Title, c.Description, c.LandingURL, c.ImpTracker, c.ClickTracker,
-		c.ID, c.Version)
-	return err
+	version := &c.Version
+	assetDuration := &c.AssetDuration
+	assetWidth := &c.AssetWidth
+	assetHeight := &c.AssetHeight
+	title := &c.Title
+	description := &c.Description
+	impTracker := &c.ImpTracker
+	clickTracker := &c.ClickTracker
+	return r.data.Queries.UpdateCreative(ctx, &dbsqlc.UpdateCreativeParams{
+		Name:          c.Name,
+		AssetUrl:      c.AssetURL,
+		AssetWidth:    assetWidth,
+		AssetHeight:   assetHeight,
+		AssetDuration: assetDuration,
+		Title:         title,
+		Description:   description,
+		LandingUrl:    c.LandingURL,
+		ImpTracker:    impTracker,
+		ClickTracker:  clickTracker,
+		ID:            c.ID,
+		Version:       version,
+	})
 }
 
 func (r *creativeRepo) SubmitAudit(ctx context.Context, id int64) error {

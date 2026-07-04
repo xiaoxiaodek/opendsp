@@ -270,6 +270,46 @@ func (q *Queries) SubmitCreativeAudit(ctx context.Context, arg *SubmitCreativeAu
 	return err
 }
 
+const updateCreative = `-- name: UpdateCreative :exec
+UPDATE creative SET name=$1, asset_url=$2, asset_width=$3, asset_height=$4, asset_duration=$5,
+  title=$6, description=$7, landing_url=$8, imp_tracker=$9, click_tracker=$10,
+  version=version+1, updated_at=NOW()
+WHERE id=$11 AND version=$12
+`
+
+type UpdateCreativeParams struct {
+	Name          string  `json:"name"`
+	AssetUrl      string  `json:"asset_url"`
+	AssetWidth    *int32  `json:"asset_width"`
+	AssetHeight   *int32  `json:"asset_height"`
+	AssetDuration *int32  `json:"asset_duration"`
+	Title         *string `json:"title"`
+	Description   *string `json:"description"`
+	LandingUrl    string  `json:"landing_url"`
+	ImpTracker    *string `json:"imp_tracker"`
+	ClickTracker  *string `json:"click_tracker"`
+	ID            int64   `json:"id"`
+	Version       *int64  `json:"version"`
+}
+
+func (q *Queries) UpdateCreative(ctx context.Context, arg *UpdateCreativeParams) error {
+	_, err := q.db.Exec(ctx, updateCreative,
+		arg.Name,
+		arg.AssetUrl,
+		arg.AssetWidth,
+		arg.AssetHeight,
+		arg.AssetDuration,
+		arg.Title,
+		arg.Description,
+		arg.LandingUrl,
+		arg.ImpTracker,
+		arg.ClickTracker,
+		arg.ID,
+		arg.Version,
+	)
+	return err
+}
+
 const updateCreativeAuditStatus = `-- name: UpdateCreativeAuditStatus :exec
 UPDATE creative SET audit_status = $1, audit_reason = $2, version = version + 1, updated_at = NOW() WHERE id = $3
 `

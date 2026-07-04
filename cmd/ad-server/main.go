@@ -198,26 +198,19 @@ func main() {
 // syncBalancesToRedis loads all advertiser balances from the DB and writes them
 // to Redis (in cents) so the budget guard can atomically check/decrement.
 func syncBalancesToRedis(ctx context.Context, d *data.Data) error {
-	rows, err := d.Pool.Query(ctx,
-		`SELECT id, COALESCE(balance, 0) AS balance FROM advertiser WHERE status = 1`)
+	rows, err := d.Queries.ListActiveAdvertisers(ctx)
 	if err != nil {
 		return fmt.Errorf("query advertisers: %w", err)
 	}
-	defer rows.Close()
 
 	count := 0
-	for rows.Next() {
-		var id int64
-		var balance float64
-		if err := rows.Scan(&id, &balance); err != nil {
-			continue
-		}
-		cents := int64(balance * 100)
-		key := fmt.Sprintf("balance:%d", id)
+	for _, row := range rows {
+		cents := int64(row.Balance * 100)
+		key := fmt.Sprintf("balance:%d", row.ID)
 		if err := d.Rdb.Set(ctx, key, cents, 0).Err(); err != nil {
-			return fmt.Errorf("set balance %d: %w", id, err)
+			return fmt.Errorf("set balance %d: %w", row.ID, err)
 		}
 		count++
 	}
-	return rows.Err()
+	return nil
 }

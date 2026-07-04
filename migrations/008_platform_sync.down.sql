@@ -1,2 +1,0 @@
-DROP TABLE IF EXISTS creative_sync CASCADE;
-DROP TABLE IF EXISTS advertiser_sync CASCADE;

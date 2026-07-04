@@ -59,14 +59,14 @@ type Advertiser struct {
 	ContactEmail        *string            `json:"contact_email"`
 	Balance             pgtype.Numeric     `json:"balance"`
 	Status              *int16             `json:"status"`
-	CreatedAt           pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
 	QualificationStatus *int16             `json:"qualification_status"`
 	QualificationReason *string            `json:"qualification_reason"`
 	CreditLimit         pgtype.Numeric     `json:"credit_limit"`
 	Address             *string            `json:"address"`
 	Website             *string            `json:"website"`
 	BrandNames          *string            `json:"brand_names"`
+	CreatedAt           pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
 }
 
 // Multi-platform advertiser synchronization status
@@ -199,9 +199,9 @@ type DmpAudience struct {
 	AudienceType *int16             `json:"audience_type"`
 	DeviceCount  *int64             `json:"device_count"`
 	Rules        []byte             `json:"rules"`
-	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 	Status       *int16             `json:"status"`
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 }
 
 type DmpDevice struct {
@@ -238,6 +238,44 @@ type FileRecord struct {
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }
 
+type FraudBlacklist struct {
+	ID        int64     `json:"id"`
+	RuleType  string    `json:"rule_type"`
+	RuleValue string    `json:"rule_value"`
+	Reason    *string   `json:"reason"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type FraudEvent struct {
+	ID        int64          `json:"id"`
+	RequestID string         `json:"request_id"`
+	RuleType  string         `json:"rule_type"`
+	RuleValue string         `json:"rule_value"`
+	RiskScore pgtype.Numeric `json:"risk_score"`
+	Action    string         `json:"action"`
+	CreatedAt time.Time      `json:"created_at"`
+}
+
+type LedgerAccount struct {
+	ID            int64     `json:"id"`
+	AdvertiserID  int64     `json:"advertiser_id"`
+	BalanceMicros int64     `json:"balance_micros"`
+	FrozenMicros  int64     `json:"frozen_micros"`
+	SpentMicros   int64     `json:"spent_micros"`
+	Version       int32     `json:"version"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+type LedgerTransaction struct {
+	ID           int64     `json:"id"`
+	AccountID    int64     `json:"account_id"`
+	Type         string    `json:"type"`
+	AmountMicros int64     `json:"amount_micros"`
+	BalanceAfter int64     `json:"balance_after"`
+	ReferenceID  *string   `json:"reference_id"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
 type Medium struct {
 	ID        int64              `json:"id"`
 	Name      string             `json:"name"`
@@ -271,10 +309,23 @@ type ReportHourly struct {
 	Impressions  *int64         `json:"impressions"`
 	Clicks       *int64         `json:"clicks"`
 	Conversions  *int64         `json:"conversions"`
+	Revenue      pgtype.Numeric `json:"revenue"`
 	Cost         pgtype.Numeric `json:"cost"`
 	WinCount     *int64         `json:"win_count"`
 	BidCount     *int64         `json:"bid_count"`
-	Revenue      pgtype.Numeric `json:"revenue"`
+}
+
+type RoiMetric struct {
+	ID            int64          `json:"id"`
+	AdvertiserID  int64          `json:"advertiser_id"`
+	CampaignID    *int64         `json:"campaign_id"`
+	AdgroupID     *int64         `json:"adgroup_id"`
+	Date          pgtype.Date    `json:"date"`
+	CostMicros    int64          `json:"cost_micros"`
+	RevenueMicros int64          `json:"revenue_micros"`
+	Conversions   int32          `json:"conversions"`
+	Roas          pgtype.Numeric `json:"roas"`
+	UpdatedAt     time.Time      `json:"updated_at"`
 }
 
 type StatEvent struct {
@@ -293,9 +344,9 @@ type StatEvent struct {
 	Ua           *string            `json:"ua"`
 	GeoCity      *string            `json:"geo_city"`
 	FreqResult   *string            `json:"freq_result"`
+	ClickID      *string            `json:"click_id"`
 	EventTime    time.Time          `json:"event_time"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
-	ClickID      *string            `json:"click_id"`
 }
 
 type StatEvent202506 struct {
@@ -314,6 +365,7 @@ type StatEvent202506 struct {
 	Ua           *string            `json:"ua"`
 	GeoCity      *string            `json:"geo_city"`
 	FreqResult   *string            `json:"freq_result"`
+	ClickID      *string            `json:"click_id"`
 	EventTime    time.Time          `json:"event_time"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 }

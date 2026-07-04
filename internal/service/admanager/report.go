@@ -72,12 +72,14 @@ func (s *AdManagerService) GetDashboard(ctx context.Context, req *pb.GetDashboar
 	}
 
 	var activeCampaigns, activeAdGroups int64
-	s.data.Pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM campaign WHERE advertiser_id=$1 AND status=1`, req.AdvertiserId,
-	).Scan(&activeCampaigns)
-	s.data.Pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM ad_group ag JOIN campaign c ON ag.campaign_id=c.id WHERE c.advertiser_id=$1 AND ag.status=1`, req.AdvertiserId,
-	).Scan(&activeAdGroups)
+	activeCampaigns, err = s.data.Queries.CountActiveCampaignsByAdvertiser(ctx, req.AdvertiserId)
+	if err != nil {
+		activeCampaigns = 0
+	}
+	activeAdGroups, err = s.data.Queries.CountActiveAdGroupsByAdvertiser(ctx, req.AdvertiserId)
+	if err != nil {
+		activeAdGroups = 0
+	}
 	d.ActiveCampaigns = activeCampaigns
 	d.ActiveAdGroups = activeAdGroups
 
