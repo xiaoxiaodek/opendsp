@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button, Table, Modal, Form, Input, InputNumber, Select, Space, message, Tag, Image, Upload, Popconfirm, Tooltip, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
 import { PlusOutlined, EditOutlined, UploadOutlined, CloudSyncOutlined, ReloadOutlined, SyncOutlined } from '@ant-design/icons';
@@ -32,6 +32,7 @@ type SyncStateMap = Record<number, Record<string, { status: number; reason: stri
   const [form] = Form.useForm();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedEntity, setSelectedEntity] = useState<{id: number; name: string} | null>(null);
+  const previewClosedAt = useRef(0);
 
   useEffect(() => {
     listCampaigns(1).then(res => {
@@ -170,7 +171,13 @@ type SyncStateMap = Record<number, Record<string, { status: number; reason: stri
   };
 
   const columns = [
-    { title: 'Preview', dataIndex: 'assetUrl', key: 'preview', render: (url: string) => <Image src={url} width={80} height={60} style={{ objectFit: 'cover', borderRadius: 4 }} fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" /> },
+    { title: 'Preview', dataIndex: 'assetUrl', key: 'preview', render: (url: string) => (
+  <div onClick={e => e.stopPropagation()}>
+    <Image src={url} width={80} height={60} style={{ objectFit: 'cover', borderRadius: 4 }}
+      preview={{ onVisibleChange: (visible) => { if (!visible) previewClosedAt.current = Date.now(); } }}
+    />
+  </div>
+  ) },
     { title: 'Name', dataIndex: 'name', key: 'name' },
     { title: 'Type', dataIndex: 'creativeType', key: 'type', render: (v: number) => creativeTypeLabels[v] || v },
     { title: 'Size', key: 'size', render: (_: any, r: Creative) => `${r.assetWidth}x${r.assetHeight}` },
@@ -254,7 +261,10 @@ type SyncStateMap = Record<number, Record<string, { status: number; reason: stri
         rowKey="id"
         loading={loading}
         onRow={(record) => ({
-          onClick: () => { setSelectedEntity({ id: record.id, name: record.name }); setDrawerOpen(true); },
+          onClick: () => {
+            if (Date.now() - previewClosedAt.current < 300) return;
+            setSelectedEntity({ id: record.id, name: record.name }); setDrawerOpen(true);
+          },
           style: { cursor: 'pointer' },
         })}
       />

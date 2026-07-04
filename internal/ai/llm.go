@@ -68,6 +68,10 @@ func NewLLMClient() LLMClient {
 	if model == "" {
 		model = "gpt-4o-mini"
 	}
+	return NewLLMClientWithConfig(apiKey, baseURL, model)
+}
+
+func NewLLMClientWithConfig(apiKey, baseURL, model string) LLMClient {
 	return &openaiClient{
 		apiKey:  apiKey,
 		baseURL: strings.TrimRight(baseURL, "/"),

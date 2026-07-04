@@ -6,19 +6,22 @@ import (
 )
 
 type AdGroup struct {
-	ID          int64
-	CampaignID  int64
-	Name        string
-	BidType     int16
-	BidPrice    float64
-	DailyBudget *float64
-	FreqCap     *int32
-	FreqPeriod  int32
-	Targeting   json.RawMessage
-	Status      int16
-	Version     int64
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID                 int64
+	CampaignID         int64
+	AdvertiserID       int64
+	Name               string
+	BidType            int16
+	BidPrice           float64
+	DailyBudget        *float64
+	FreqCap            *int32
+	FreqPeriod         int32
+	Targeting          json.RawMessage
+	Status             int16
+	Version            int64
+	CampaignStartTime  *time.Time
+	CampaignEndTime    *time.Time
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
 }
 
 const (

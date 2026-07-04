@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/opendsp/opendsp/internal/data"
 	"github.com/opendsp/opendsp/internal/data/dbsqlc"
+	postgresRoi "github.com/opendsp/opendsp/internal/infrastructure/persistence/postgres/roi"
 )
 
 const (
@@ -51,6 +52,10 @@ func GenerateClickID() string {
 
 func (a *AttributionTracker) HandlePostback(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
+	if q.Get("is_test") == "1" {
+		writeJSON(w, 200, map[string]string{"status": "ok", "test": "true"})
+		return
+	}
 	clickID := q.Get("click_id")
 	if clickID == "" {
 		writeJSON(w, 400, map[string]string{"error": "missing click_id"})
@@ -63,6 +68,11 @@ func (a *AttributionTracker) HandlePostback(w http.ResponseWriter, r *http.Reque
 	}
 
 	revenue, _ := strconv.ParseFloat(q.Get("revenue"), 64)
+	if revenue == 0 {
+		if v := q.Get("value"); v != "" {
+			revenue, _ = strconv.ParseFloat(v, 64)
+		}
+	}
 	price, _ := strconv.ParseFloat(q.Get("price"), 64)
 	adgroupID, _ := strconv.ParseInt(q.Get("adgroup_id"), 10, 64)
 	creativeID, _ := strconv.ParseInt(q.Get("creative_id"), 10, 64)
@@ -152,6 +162,23 @@ func (a *AttributionTracker) HandlePostback(w http.ResponseWriter, r *http.Reque
 				log.Printf("attribution: upsert report: %v", err)
 			}
 		}
+
+		if adgroupID > 0 && revenue > 0 {
+			roiRepo := postgresRoi.NewConversionRepo(a.data.Pool)
+			costEstimate := int64(0)
+			if click != nil {
+				if fv, err := click.Price.Float64Value(); err == nil {
+					costEstimate = int64(fv.Float64 * 1_000_000)
+				}
+			}
+			if err := roiRepo.UpsertMetrics(r.Context(),
+				advertiserID, campaignID, adgroupID,
+				now.Truncate(24*time.Hour),
+				costEstimate, int64(revenue*1_000_000), 1,
+			); err != nil {
+				log.Printf("attribution: upsert roi metrics: %v", err)
+			}
+		}
 	}
 
 	writeJSON(w, 200, map[string]interface{}{
@@ -165,6 +192,11 @@ func (a *AttributionTracker) HandlePostback(w http.ResponseWriter, r *http.Reque
 func (a *AttributionTracker) HandlePostbackBatch(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		writeJSON(w, 405, map[string]string{"error": "method not allowed"})
+		return
+	}
+
+	if r.URL.Query().Get("is_test") == "1" {
+		writeJSON(w, 200, map[string]string{"status": "ok", "test": "true"})
 		return
 	}
 
@@ -224,6 +256,15 @@ func (a *AttributionTracker) HandlePostbackBatch(w http.ResponseWriter, r *http.
 				log.Printf("attribution: batch insert conversion: %v", err)
 				continue
 			}
+
+			if ev.Revenue > 0 {
+				roiRepo := postgresRoi.NewConversionRepo(a.data.Pool)
+				roiRepo.UpsertMetrics(r.Context(),
+					0, 0, 0,
+					now.Truncate(24*time.Hour),
+					0, int64(ev.Revenue*1_000_000), 1,
+				)
+			}
 		}
 		successCount++
 	}
@@ -236,7 +277,12 @@ func (a *AttributionTracker) HandlePostbackBatch(w http.ResponseWriter, r *http.
 }
 
 func (a *AttributionTracker) HandleMMPPostback(w http.ResponseWriter, r *http.Request) {
-	platform := r.URL.Query().Get("platform")
+	q := r.URL.Query()
+	if q.Get("is_test") == "1" {
+		writeJSON(w, 200, map[string]string{"status": "ok", "test": "true"})
+		return
+	}
+	platform := q.Get("platform")
 	switch strings.ToLower(platform) {
 	case "adjust":
 		a.handleAdjustPostback(w, r)

@@ -117,6 +117,21 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(raw) > 0 && r.Header.Get("Content-Encoding") == "gzip" {
+		gr, gzErr := gzip.NewReader(strings.NewReader(string(raw)))
+		if gzErr != nil {
+			http.Error(w, "decompress failed", http.StatusBadRequest)
+			return
+		}
+		decompressed, gzErr := io.ReadAll(gr)
+		gr.Close()
+		if gzErr != nil {
+			http.Error(w, "decompress read failed", http.StatusBadRequest)
+			return
+		}
+		raw = decompressed
+	}
+
 	req, err := adp.ParseRequest(raw)
 	if err != nil {
 		http.Error(w, "parse request failed", http.StatusBadRequest)
@@ -146,10 +161,22 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			MaxDuration:  imp.MaxDuration,
 			UserID:       req.User.UserID,
 			AudienceID:   extractAudienceID(req),
+			IsTest:       req.IsTest,
 		})
 
 		if result == nil {
 			continue
+		}
+
+		// Enrich impression tracker URLs with reservation_id, campaign_id and advertiser_id
+		enrichedTrackers := make([]string, len(result.ImpTrackers))
+		for i, tracker := range result.ImpTrackers {
+			enrichedTrackers[i] = appendReservationParams(tracker, result.ReservationID, result.CampaignID, result.AdvertiserID)
+		}
+
+		enrichedClickTrackers := make([]string, len(result.ClickTrackers))
+		for i, tracker := range result.ClickTrackers {
+			enrichedClickTrackers[i] = appendIDParams(tracker, result.CampaignID, result.AdvertiserID)
 		}
 
 		vastXML, _ := vast.BuildVast(vast.AdParams{
@@ -160,7 +187,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			AssetMime:      result.Creative.AssetMime,
 			Width:          result.Width,
 			Height:         result.Height,
-			ImpTrackers:    result.ImpTrackers,
+			ImpTrackers:    enrichedTrackers,
 			ClickID:        result.ClickID,
 			ClickType:      result.ClickType,
 			ClickTrackers:  result.ClickTrackers,
@@ -180,7 +207,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				LandingURL:     result.LandingURL,
 				DeeplinkURL:    result.DeeplinkURL,
 				ImpTrackers:    result.ImpTrackers,
-				ClickTrackers:  result.ClickTrackers,
+				ClickTrackers:  enrichedClickTrackers,
 				Width:          result.Width,
 				Height:         result.Height,
 				Duration:       result.Duration,
@@ -221,6 +248,31 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.Write(out)
 	}
+}
+
+// appendReservationParams appends reservation_id, campaign_id and advertiser_id as query params to a tracker URL.
+func appendReservationParams(trackerURL, reservationID string, campaignID, advertiserID int64) string {
+	if reservationID == "" {
+		return trackerURL
+	}
+	sep := "&"
+	if !strings.Contains(trackerURL, "?") {
+		sep = "?"
+	}
+	return fmt.Sprintf("%s%sreservation_id=%s&campaign_id=%d&advertiser_id=%d",
+		trackerURL, sep, url.QueryEscape(reservationID), campaignID, advertiserID)
+}
+
+func appendIDParams(trackerURL string, campaignID, advertiserID int64) string {
+	if campaignID == 0 && advertiserID == 0 {
+		return trackerURL
+	}
+	sep := "&"
+	if !strings.Contains(trackerURL, "?") {
+		sep = "?"
+	}
+	return fmt.Sprintf("%s%scampaign_id=%d&advertiser_id=%d",
+		trackerURL, sep, campaignID, advertiserID)
 }
 
 func extractAudienceID(req *adapter.UnifiedBidRequest) int64 {

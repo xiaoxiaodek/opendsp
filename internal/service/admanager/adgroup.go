@@ -11,6 +11,10 @@ import (
 )
 
 func (s *AdManagerService) CreateAdGroup(ctx context.Context, req *pb.CreateAdGroupReq) (*pb.AdGroup, error) {
+	targeting := []byte(req.Targeting)
+	if len(targeting) == 0 {
+		targeting = []byte("{}")
+	}
 	ag := &biz.AdGroup{
 		CampaignID:  req.CampaignId,
 		Name:        req.Name,
@@ -18,7 +22,7 @@ func (s *AdManagerService) CreateAdGroup(ctx context.Context, req *pb.CreateAdGr
 		BidPrice:    req.BidPrice,
 		DailyBudget: req.DailyBudget,
 		FreqPeriod:  req.FreqPeriod,
-		Targeting:   []byte(req.Targeting),
+		Targeting:   targeting,
 	}
 	if req.FreqCap != nil {
 		fc := *req.FreqCap

@@ -2,7 +2,7 @@
 *.exe *.exe~ *.dll *.so *.dylib
 ad-server ad-manager ad-syncer
 *.test *.out
-docs/
+docs/superpowers/
 bin/
 dist/
 
@@ -23,3 +23,4 @@ web/dist/
 /ad-manager
 /ad-server
 /ad-syncer
+.claude/

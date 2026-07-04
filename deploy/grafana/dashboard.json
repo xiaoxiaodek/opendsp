@@ -63,7 +63,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "cfprpyq5k816of"
+                        "name": "efr1pfnhybgu8c"
                       },
                       "spec": {
                         "expr": "rate(dsp_bid_requests_total[1m])"
@@ -178,7 +178,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "cfprpyq5k816of"
+                        "name": "efr1pfnhybgu8c"
                       },
                       "spec": {
                         "expr": "go_memstats_alloc_bytes",
@@ -197,7 +197,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "cfprpyq5k816of"
+                        "name": "efr1pfnhybgu8c"
                       },
                       "spec": {
                         "expr": "go_memstats_sys_bytes",
@@ -314,7 +314,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "cfprpyq5k816of"
+                        "name": "efr1pfnhybgu8c"
                       },
                       "spec": {
                         "expr": "rate(go_gc_duration_seconds_sum[1m]) / rate(go_gc_duration_seconds_count[1m])",
@@ -430,7 +430,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "cfprpyq5k816of"
+                        "name": "efr1pfnhybgu8c"
                       },
                       "spec": {
                         "expr": "rate(process_cpu_seconds_total[1m])",
@@ -546,7 +546,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "cfprpyq5k816of"
+                        "name": "efr1pfnhybgu8c"
                       },
                       "spec": {
                         "expr": "process_resident_memory_bytes",
@@ -662,7 +662,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "cfprpyq5k816of"
+                        "name": "efr1pfnhybgu8c"
                       },
                       "spec": {
                         "expr": "process_open_fds",
@@ -778,7 +778,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "cfprpyq5k816of"
+                        "name": "efr1pfnhybgu8c"
                       },
                       "spec": {
                         "expr": "histogram_quantile(0.99, rate(dsp_bid_latency_seconds_bucket[1m]))"
@@ -893,7 +893,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "cfprpyq5k816of"
+                        "name": "efr1pfnhybgu8c"
                       },
                       "spec": {
                         "expr": "sum(rate(dsp_bid_wins_total[1m])) / sum(rate(dsp_bid_requests_total[1m]))",
@@ -1009,7 +1009,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "cfprpyq5k816of"
+                        "name": "efr1pfnhybgu8c"
                       },
                       "spec": {
                         "expr": "rate(dsp_bid_nofill_total[1m])"
@@ -1124,7 +1124,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "cfprpyq5k816of"
+                        "name": "efr1pfnhybgu8c"
                       },
                       "spec": {
                         "expr": "dsp_index_ad_count"
@@ -1239,7 +1239,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "cfprpyq5k816of"
+                        "name": "efr1pfnhybgu8c"
                       },
                       "spec": {
                         "expr": "dsp_index_version"
@@ -1354,7 +1354,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "cfprpyq5k816of"
+                        "name": "efr1pfnhybgu8c"
                       },
                       "spec": {
                         "expr": "histogram_quantile(0.99, rate(dsp_freq_check_latency_seconds_bucket[1m]))"
@@ -1469,7 +1469,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "cfprpyq5k816of"
+                        "name": "efr1pfnhybgu8c"
                       },
                       "spec": {
                         "expr": "go_goroutines",
@@ -1585,7 +1585,7 @@
                       "group": "prometheus",
                       "version": "v0",
                       "datasource": {
-                        "name": "cfprpyq5k816of"
+                        "name": "efr1pfnhybgu8c"
                       },
                       "spec": {
                         "expr": "go_memstats_heap_alloc_bytes",
@@ -1678,6 +1678,228 @@
                   }
                 },
                 "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-15": {
+        "kind": "Panel",
+        "spec": {
+          "id": 15,
+          "title": "Pipeline Stage Latency P95",
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "efr1pfnhybgu8c"
+                      },
+                      "spec": {
+                        "expr": "histogram_quantile(0.95, sum(rate(dsp_pipeline_stage_duration_ms_bucket[1m])) by (le, stage))",
+                        "legendFormat": "{{stage}}"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "timeseries",
+            "version": "13.0.2",
+            "spec": {
+              "options": {
+                "legend": {
+                  "calcs": [
+                    "last"
+                  ],
+                  "displayMode": "table",
+                  "placement": "right",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "ms",
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "lineWidth": 2,
+                    "showPoints": "auto",
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "panel-16": {
+        "kind": "Panel",
+        "spec": {
+          "id": 16,
+          "title": "Pipeline Stage Errors",
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "efr1pfnhybgu8c"
+                      },
+                      "spec": {
+                        "expr": "rate(dsp_pipeline_stage_errors_total[1m])",
+                        "legendFormat": "{{stage}}"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "timeseries",
+            "version": "13.0.2",
+            "spec": {
+              "options": {
+                "legend": {
+                  "calcs": [
+                    "last"
+                  ],
+                  "displayMode": "table",
+                  "placement": "right",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "",
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "lineWidth": 2,
+                    "showPoints": "auto",
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "panel-17": {
+        "kind": "Panel",
+        "spec": {
+          "id": 17,
+          "title": "Pipeline Candidates Dropped",
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "efr1pfnhybgu8c"
+                      },
+                      "spec": {
+                        "expr": "sum(rate(dsp_pipeline_stage_dropped_total[1m])) by (stage, reason)",
+                        "legendFormat": "{{stage}}/{{reason}}"
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "timeseries",
+            "version": "13.0.2",
+            "spec": {
+              "options": {
+                "legend": {
+                  "calcs": [
+                    "last"
+                  ],
+                  "displayMode": "table",
+                  "placement": "right",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "",
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "lineWidth": 2,
+                    "showPoints": "auto",
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    }
+                  }
+                }
               }
             }
           }
@@ -1796,6 +2018,59 @@
           {
             "kind": "RowsLayoutRow",
             "spec": {
+              "title": "Pipeline 瓶颈分析",
+              "collapse": false,
+              "layout": {
+                "kind": "GridLayout",
+                "spec": {
+                  "items": [
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 24,
+                        "height": 8,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-15"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 8,
+                        "width": 12,
+                        "height": 6,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-16"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 12,
+                        "y": 8,
+                        "width": 12,
+                        "height": 6,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-17"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
               "title": "golang 监控",
               "collapse": false,
               "layout": {
@@ -1884,7 +2159,7 @@
       "timezone": "browser",
       "from": "now-6h",
       "to": "now",
-      "autoRefresh": "",
+      "autoRefresh": "10s",
       "autoRefreshIntervals": [
         "5s",
         "10s",

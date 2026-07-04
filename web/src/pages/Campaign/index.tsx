@@ -86,7 +86,16 @@ export default function CampaignPage() {
     },
     {
       title: 'Status', dataIndex: 'status', key: 'status',
-      render: (v: number) => <Tag color={v === 1 ? 'green' : v === 2 ? 'orange' : 'default'}>{v === 1 ? 'Active' : v === 2 ? 'Paused' : 'Ended'}</Tag>,
+      render: (v: number) => {
+        const map: Record<number, { text: string; color: string }> = {
+          0: { text: 'Draft', color: 'default' },
+          1: { text: 'Active', color: 'green' },
+          2: { text: 'Paused', color: 'orange' },
+          3: { text: 'Completed', color: 'blue' },
+        };
+        const s = map[v] ?? { text: 'Unknown', color: 'default' };
+        return <Tag color={s.color}>{s.text}</Tag>;
+      },
     },
     {
       title: 'Actions', key: 'actions',

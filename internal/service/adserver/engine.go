@@ -3,12 +3,12 @@ package adserver
 import (
 	"context"
 	"fmt"
-	"math/rand"
-	"sort"
 	"strconv"
 	"sync"
 	"time"
 
+	appbidding "github.com/opendsp/opendsp/internal/application/bidding"
+	"github.com/opendsp/opendsp/internal/domain/bidding"
 	"github.com/opendsp/opendsp/internal/freq"
 	"github.com/opendsp/opendsp/internal/index"
 	"github.com/prometheus/client_golang/prometheus"
@@ -35,8 +35,11 @@ var (
 )
 
 type Engine struct {
-	index     *index.InvertedIndex
-	freqCtrl  *freq.Controller
+	index    *index.InvertedIndex
+	freqCtrl *freq.Controller
+	pipeline *appbidding.Pipeline
+
+	// Legacy exclusion cache, preserved for backward compat during migration
 	exclusion *ExclusionCache
 }
 
@@ -73,10 +76,11 @@ func (c *ExclusionCache) getExcluded(userID string) map[uint32]string {
 	return result
 }
 
-func NewEngine(idx *index.InvertedIndex, freqCtrl *freq.Controller) *Engine {
+func NewEngine(idx *index.InvertedIndex, freqCtrl *freq.Controller, pipeline *appbidding.Pipeline) *Engine {
 	return &Engine{
 		index:     idx,
 		freqCtrl:  freqCtrl,
+		pipeline:  pipeline,
 		exclusion: newExclusionCache(),
 	}
 }
@@ -140,6 +144,9 @@ type BidResult struct {
 	TrackingEvents map[string][]string
 	DeeplinkApp    string
 	IconURL        string
+	ReservationID  string // token bucket reservation ID for impression tracking
+	CampaignID     int64  // campaign ID for enriched tracker params
+	AdvertiserID   int64  // advertiser ID for enriched tracker params
 }
 
 type BidParams struct {
@@ -156,6 +163,7 @@ type BidParams struct {
 	MaxDuration  int32
 	UserID       string
 	AudienceID   int64
+	IsTest       bool
 }
 
 func (e *Engine) Bid(ctx context.Context, params BidParams) *BidResult {
@@ -166,7 +174,34 @@ func (e *Engine) Bid(ctx context.Context, params BidParams) *BidResult {
 
 	bidRequests.WithLabelValues(params.MediaID, fmt.Sprintf("%d", params.PositionType)).Inc()
 
-	req := &index.MatchRequest{
+	// Build domain BidRequest
+	req := &bidding.BidRequest{
+		MediaID:      params.MediaID,
+		PositionType: params.PositionType,
+		GeoCity:      params.GeoCity,
+		OS:           params.OS,
+		DeviceType:   params.DeviceType,
+		ContentID:    params.ContentID,
+		Category:     params.Category,
+		Width:        params.Width,
+		Height:       params.Height,
+		MinDuration:  params.MinDuration,
+		MaxDuration:  params.MaxDuration,
+		UserID:       params.UserID,
+		IsTest:       params.IsTest,
+	}
+
+	// Pre-match pipeline (anti-fraud)
+	if e.pipeline != nil && !e.pipeline.RunPreMatch(ctx, req) {
+		bidNoFill.WithLabelValues(params.MediaID, "antifraud").Inc()
+		return nil
+	}
+
+	// Legacy: refresh exclusion cache (budget/freq checks)
+	e.RefreshExclusions(ctx, params.UserID)
+
+	// Index matching (existing logic)
+	matchReq := &index.MatchRequest{
 		MediaID:      params.MediaID,
 		PositionType: params.PositionType,
 		GeoCity:      params.GeoCity,
@@ -178,33 +213,51 @@ func (e *Engine) Bid(ctx context.Context, params BidParams) *BidResult {
 		Exclusion:    e.exclusion.getExcluded(params.UserID),
 	}
 
-	candidates := e.index.Match(req)
-	if len(candidates) == 0 {
+	adGroupIDs := e.index.Match(matchReq)
+	if len(adGroupIDs) == 0 {
 		bidNoFill.WithLabelValues(params.MediaID, "no_match").Inc()
 		return nil
 	}
 
-	sort.Slice(candidates, func(i, j int) bool {
-		a := e.index.GetAdGroup(candidates[i])
-		b := e.index.GetAdGroup(candidates[j])
-		if a == nil || b == nil {
-			return false
-		}
-		if a.BidPrice != b.BidPrice {
-			return a.BidPrice > b.BidPrice
-		}
-		return rand.Intn(2) == 0
-	})
-
-	for _, agID := range candidates {
+	// Convert matched ad group IDs to domain Candidates
+	candidates := make([]*bidding.Candidate, 0, len(adGroupIDs))
+	for _, agID := range adGroupIDs {
 		ag := e.index.GetAdGroup(agID)
 		if ag == nil {
 			continue
 		}
-
 		creatives := e.index.GetCreatives(agID)
-		creative := selectCreative(creatives, params.Width, params.Height, params.MinDuration, params.MaxDuration)
+		for _, cr := range creatives {
+			if cr.AuditStatus != 1 {
+				continue
+			}
+			candidates = append(candidates, bidding.NewCandidateWithAdvertiser(agID, cr.ID, ag.BidPrice, ag.AdvertiserID, ag.CampaignID))
+		}
+	}
+
+	// Post-match pipeline (RTA → feature → scoring → pricing → pacing → budget guard)
+	if e.pipeline != nil {
+		var aborted bool
+		candidates, aborted = e.pipeline.RunPostMatch(ctx, req, candidates)
+		if aborted || len(candidates) == 0 {
+			bidNoFill.WithLabelValues(params.MediaID, "pipeline_filtered").Inc()
+			return nil
+		}
+	}
+
+	// Select best candidate and find its creative
+	for _, c := range candidates {
+		ag := e.index.GetAdGroup(c.AdGroupID)
+		if ag == nil {
+			continue
+		}
+
+		creatives := e.index.GetCreatives(c.AdGroupID)
+		creative := findCreativeByID(creatives, c.CreativeID)
 		if creative == nil {
+			continue
+		}
+		if !creativeMatchesFormat(creative, params.Width, params.Height, params.MinDuration, params.MaxDuration) {
 			continue
 		}
 
@@ -223,7 +276,7 @@ func (e *Engine) Bid(ctx context.Context, params BidParams) *BidResult {
 		}
 
 		return &BidResult{
-			AdGroupID:       agID,
+			AdGroupID:       c.AdGroupID,
 			Creative:        creative,
 			Price:           ag.BidPrice,
 			LandingURL:      creative.LandingURL,
@@ -239,6 +292,8 @@ func (e *Engine) Bid(ctx context.Context, params BidParams) *BidResult {
 			ClickType:       clickType,
 			ClickThroughURL: creative.LandingURL,
 			DeeplinkApp:     "",
+			CampaignID:      ag.CampaignID,
+			AdvertiserID:    ag.AdvertiserID,
 		}
 	}
 
@@ -266,4 +321,33 @@ func selectCreative(creatives []index.CreativeInfo, width, height, minDuration, 
 		return c
 	}
 	return nil
+}
+
+// findCreativeByID looks up a creative by its ID from the creative list.
+func findCreativeByID(creatives []index.CreativeInfo, id int64) *index.CreativeInfo {
+	for i := range creatives {
+		if creatives[i].ID == id {
+			return &creatives[i]
+		}
+	}
+	return nil
+}
+
+// creativeMatchesFormat checks if a creative satisfies the format requirements.
+func creativeMatchesFormat(c *index.CreativeInfo, width, height, minDuration, maxDuration int32) bool {
+	if c.AuditStatus != 1 {
+		return false
+	}
+	if width > 0 && height > 0 {
+		if c.AssetWidth != width || c.AssetHeight != height {
+			return false
+		}
+	}
+	if maxDuration > 0 && c.AssetDuration > maxDuration {
+		return false
+	}
+	if minDuration > 0 && c.AssetDuration < minDuration {
+		return false
+	}
+	return true
 }

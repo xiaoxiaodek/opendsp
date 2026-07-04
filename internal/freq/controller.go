@@ -7,7 +7,17 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/redis/go-redis/v9"
+)
+
+var (
+	freqCheckLatency = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "dsp_freq_check_latency_seconds",
+		Help:    "Frequency/capacity check latency in seconds.",
+		Buckets: []float64{.0001, .0005, .001, .002, .005, .01, .02, .05, .1, .5},
+	}, []string{"result"})
 )
 
 //go:embed lua/impression_check.lua
@@ -43,7 +53,19 @@ type CheckResult struct {
 	Reason string
 }
 
-func (c *Controller) Check(ctx context.Context, p CheckParams) (*CheckResult, error) {
+func (c *Controller) Check(ctx context.Context, p CheckParams) (res *CheckResult, err error) {
+	start := time.Now()
+	defer func() {
+		label := "ok"
+		if err != nil {
+			label = "error"
+		} else if res != nil && !res.OK {
+			label = "rejected"
+		} else if p.BidPrice <= 0 {
+			label = "skip"
+		}
+		freqCheckLatency.WithLabelValues(label).Observe(time.Since(start).Seconds())
+	}()
 	date := time.Now().Format("20060102")
 
 	priceCents := int64(p.BidPrice * 100)

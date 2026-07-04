@@ -7,10 +7,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/opendsp/opendsp/internal/config"
 	"github.com/opendsp/opendsp/internal/data"
 	"github.com/opendsp/opendsp/internal/service/filegateway"
 	"github.com/opendsp/opendsp/internal/storage"
@@ -23,25 +25,26 @@ import (
 func main() {
 	ctx := context.Background()
 
-	d, cleanup, err := data.NewData(ctx)
+	cfg, _, err := config.Load("config/app.yaml")
+	if err != nil {
+		log.Fatalf("config: %v", err)
+	}
+
+	d, cleanup, err := data.NewData(ctx, cfg.Database, cfg.Redis)
 	if err != nil {
 		log.Fatalf("data: %v", err)
 	}
 	defer cleanup()
 
-	cfg := storage.ConfigFromEnv()
-	backend, err := storage.NewFromConfig(ctx, cfg)
+	backend, err := storage.NewFromConfig(ctx, cfg.Storage)
 	if err != nil {
 		log.Fatalf("storage: %v", err)
 	}
-	log.Printf("storage backend: %s", cfg.Backend)
+	log.Printf("storage backend: %s", cfg.Storage.Backend)
 
 	svc := filegateway.NewService(backend, d)
 
-	grpcPort := os.Getenv("GRPC_PORT")
-	if grpcPort == "" {
-		grpcPort = "9092"
-	}
+	grpcPort := strconv.Itoa(cfg.Server.GRPCPort)
 
 	lis, err := net.Listen("tcp", ":"+grpcPort)
 	if err != nil {
@@ -65,10 +68,7 @@ func main() {
 		log.Fatalf("register gateway: %v", err)
 	}
 
-	httpPort := os.Getenv("HTTP_PORT")
-	if httpPort == "" {
-		httpPort = "9001"
-	}
+	httpPort := strconv.Itoa(cfg.Server.Port)
 
 	httpMux := http.NewServeMux()
 	httpMux.Handle("/creative/", svc.FileProxyHandler())

@@ -1,0 +1,27 @@
+protocol: iqiyi
+target: http://localhost:8080
+endpoint: /rtb/iqiyi
+duration: 3s
+qps: 100
+concurrency: 50
+gzip: true
+timeout: 500ms
+scenario:
+  profile: mixed
+  mixed_weights:
+    hot-user: 0.2
+    long-tail: 0.7
+    peak: 0.1
+  hot_user_pool: 100
+  long_tail_ids: 10000000
+funnel:
+  win_rate: 0.30
+  imp_rate: 0.95
+  click_rate: 0.01
+  conv_rate: 0.001
+receiver:
+  listen: :9095
+  metrics_path: /metrics
+report:
+  interval: 1s
+  output: /tmp/stress_report.json

@@ -6,15 +6,29 @@ import (
 
 	"github.com/RoaringBitmap/roaring/v2"
 	"github.com/opendsp/opendsp/internal/biz"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+var (
+	indexAdCount = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "dsp_index_ad_count",
+		Help: "Number of active ad groups in the index.",
+	})
+	indexVersion = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "dsp_index_version",
+		Help: "Current index version (increments on each rebuild).",
+	})
 )
 
 type AdGroupInfo struct {
-	ID          int64
-	CampaignID  int64
-	BidPrice    float64
-	DailyBudget *float64
-	FreqCap     *int32
-	Targeting   *biz.Targeting
+	ID           int64
+	CampaignID   int64
+	AdvertiserID int64
+	BidPrice     float64
+	DailyBudget  *float64
+	FreqCap      *int32
+	Targeting    *biz.Targeting
 }
 
 type CreativeInfo struct {

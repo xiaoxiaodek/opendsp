@@ -317,4 +317,21 @@ export interface DimensionItem {
 export const getDashboardBreakdown = (advertiserId: number, dimension: string, topN = 10) =>
   api.get('/dashboard/breakdown', { params: { advertiser_id: advertiserId, dimension, top_n: topN } });
 
+// Generic helpers for absolute /api/* endpoints (bypass the /api/v1 baseURL).
+// Return the response body directly.
+export async function apiGet<T = any>(url: string, params?: Record<string, unknown>): Promise<T> {
+  const { data } = await api.get<T>(url, { baseURL: '', params });
+  return data;
+}
+
+export async function apiPost<T = any>(url: string, body?: unknown): Promise<T> {
+  const { data } = await api.post<T>(url, body, { baseURL: '' });
+  return data;
+}
+
+export async function apiDelete<T = any>(url: string): Promise<T> {
+  const { data } = await api.delete<T>(url, { baseURL: '' });
+  return data;
+}
+
 export default api;

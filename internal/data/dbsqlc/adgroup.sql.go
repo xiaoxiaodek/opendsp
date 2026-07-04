@@ -103,26 +103,38 @@ func (q *Queries) GetAdGroup(ctx context.Context, id int64) (*AdGroup, error) {
 }
 
 const listActiveAdGroups = `-- name: ListActiveAdGroups :many
-SELECT id, campaign_id, name, bid_type, bid_price, daily_budget, freq_cap, freq_period, targeting, status, version
-FROM ad_group WHERE status = $1
+SELECT ag.id, ag.campaign_id, ag.name, ag.bid_type, ag.bid_price, ag.daily_budget,
+       ag.freq_cap, ag.freq_period, ag.targeting, ag.status, ag.version,
+       c.advertiser_id AS advertiser_id, c.start_time AS campaign_start_time, c.end_time AS campaign_end_time
+FROM ad_group ag
+INNER JOIN campaign c ON c.id = ag.campaign_id
+WHERE ag.status = $1 AND c.status = $2
 `
 
-type ListActiveAdGroupsRow struct {
-	ID          int64           `json:"id"`
-	CampaignID  int64           `json:"campaign_id"`
-	Name        string          `json:"name"`
-	BidType     int16           `json:"bid_type"`
-	BidPrice    float64         `json:"bid_price"`
-	DailyBudget pgtype.Numeric  `json:"daily_budget"`
-	FreqCap     *int32          `json:"freq_cap"`
-	FreqPeriod  *int32          `json:"freq_period"`
-	Targeting   json.RawMessage `json:"targeting"`
-	Status      *int16          `json:"status"`
-	Version     *int64          `json:"version"`
+type ListActiveAdGroupsParams struct {
+	Status   *int16 `json:"status"`
+	Status_2 *int16 `json:"status_2"`
 }
 
-func (q *Queries) ListActiveAdGroups(ctx context.Context, status *int16) ([]*ListActiveAdGroupsRow, error) {
-	rows, err := q.db.Query(ctx, listActiveAdGroups, status)
+type ListActiveAdGroupsRow struct {
+	ID                int64              `json:"id"`
+	CampaignID        int64              `json:"campaign_id"`
+	Name              string             `json:"name"`
+	BidType           int16              `json:"bid_type"`
+	BidPrice          float64            `json:"bid_price"`
+	DailyBudget       pgtype.Numeric     `json:"daily_budget"`
+	FreqCap           *int32             `json:"freq_cap"`
+	FreqPeriod        *int32             `json:"freq_period"`
+	Targeting         json.RawMessage    `json:"targeting"`
+	Status            *int16             `json:"status"`
+	Version           *int64             `json:"version"`
+	AdvertiserID      int64              `json:"advertiser_id"`
+	CampaignStartTime pgtype.Timestamptz `json:"campaign_start_time"`
+	CampaignEndTime   pgtype.Timestamptz `json:"campaign_end_time"`
+}
+
+func (q *Queries) ListActiveAdGroups(ctx context.Context, arg *ListActiveAdGroupsParams) ([]*ListActiveAdGroupsRow, error) {
+	rows, err := q.db.Query(ctx, listActiveAdGroups, arg.Status, arg.Status_2)
 	if err != nil {
 		return nil, err
 	}
@@ -142,6 +154,9 @@ func (q *Queries) ListActiveAdGroups(ctx context.Context, status *int16) ([]*Lis
 			&i.Targeting,
 			&i.Status,
 			&i.Version,
+			&i.AdvertiserID,
+			&i.CampaignStartTime,
+			&i.CampaignEndTime,
 		); err != nil {
 			return nil, err
 		}

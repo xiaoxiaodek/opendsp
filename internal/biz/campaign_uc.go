@@ -3,17 +3,16 @@ package biz
 import (
 	"context"
 	"encoding/json"
-
-	"github.com/redis/go-redis/v9"
 )
 
+// CampaignUseCase orchestrates campaign lifecycle operations.
 type CampaignUseCase struct {
-	repo CampaignRepo
-	rdb  *redis.Client
+	repo      CampaignRepo
+	publisher EventPublisher
 }
 
-func NewCampaignUseCase(repo CampaignRepo, rdb *redis.Client) *CampaignUseCase {
-	return &CampaignUseCase{repo: repo, rdb: rdb}
+func NewCampaignUseCase(repo CampaignRepo, publisher EventPublisher) *CampaignUseCase {
+	return &CampaignUseCase{repo: repo, publisher: publisher}
 }
 
 func (uc *CampaignUseCase) Create(ctx context.Context, c *Campaign) error {
@@ -71,6 +70,9 @@ func (uc *CampaignUseCase) List(ctx context.Context, advertiserID int64, status 
 }
 
 func (uc *CampaignUseCase) publish(ctx context.Context, eventType string, id int64) {
+	if uc.publisher == nil {
+		return
+	}
 	data, _ := json.Marshal(map[string]interface{}{"type": eventType, "id": id})
-	uc.rdb.Publish(ctx, "ad:change", data)
+	uc.publisher.Publish(ctx, "ad:change", data)
 }

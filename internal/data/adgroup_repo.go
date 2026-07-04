@@ -108,17 +108,21 @@ func (r *adGroupRepo) List(ctx context.Context, campaignID int64, status *int16,
 }
 
 func (r *adGroupRepo) ListActive(ctx context.Context) ([]biz.AdGroup, error) {
-	status := biz.CampaignStatusActive
-	rows, err := r.data.Queries.ListActiveAdGroups(ctx, &status)
+	activeStatus := biz.CampaignStatusActive
+	rows, err := r.data.Queries.ListActiveAdGroups(ctx, &dbsqlc.ListActiveAdGroupsParams{
+		Status:   &activeStatus,
+		Status_2: &activeStatus,
+	})
 	if err != nil {
 		return nil, err
 	}
 
 	var groups []biz.AdGroup
 	for _, row := range rows {
-		groups = append(groups, biz.AdGroup{
+		ag := biz.AdGroup{
 			ID:          row.ID,
 			CampaignID:  row.CampaignID,
+			AdvertiserID: row.AdvertiserID,
 			Name:        row.Name,
 			BidType:     row.BidType,
 			BidPrice:    row.BidPrice,
@@ -128,7 +132,16 @@ func (r *adGroupRepo) ListActive(ctx context.Context) ([]biz.AdGroup, error) {
 			Targeting:   row.Targeting,
 			Status:      ptrInt16(row.Status),
 			Version:     ptrInt64(row.Version),
-		})
+		}
+		if row.CampaignStartTime.Valid {
+			t := row.CampaignStartTime.Time
+			ag.CampaignStartTime = &t
+		}
+		if row.CampaignEndTime.Valid {
+			t := row.CampaignEndTime.Time
+			ag.CampaignEndTime = &t
+		}
+		groups = append(groups, ag)
 	}
 	return groups, nil
 }

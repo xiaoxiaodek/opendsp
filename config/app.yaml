@@ -1,0 +1,135 @@
+server:
+  port: 8080
+  grpc_port: 9090
+  log_level: info
+
+database:
+  url: "postgres://opendsp:opendsp@localhost:5432/opendsp?sslmode=disable"
+
+redis:
+  addr: "localhost:6379"
+
+kafka:
+  brokers:
+    - "localhost:9092"
+
+clickhouse:
+  host: "localhost"
+  port: 9000
+  database: "opendsp"
+  username: "opendsp"
+  password: "opendsp"
+
+storage:
+  backend: "s3"
+  endpoint: "http://localhost:9000"
+  access_key: "dummy"
+  secret_key: "dummy"
+  region: "us-east-1"
+  local_dir: "/data/files"
+
+pipeline:
+  antifraud:
+    enabled: true
+    on_error: abort
+    threshold: 0.8
+    sliding_window:
+      enabled: true
+      request_rate:
+        window_ms: 10000
+        max_ip_count: 50
+        max_device_count: 30
+      ctr_anomaly:
+        window_ms: 300000
+        max_ctr_pct: 80
+      device_diversity:
+        window_ms: 60000
+        max_ip_changes: 3
+        max_ua_changes: 2
+      dynamic_blacklist_ttl_ms: 1800000
+  rta:
+    enabled: false
+    on_error: skip
+    timeout_ms: 15
+  coarse_ranking:
+    enabled: true
+    on_error: skip
+    max_candidates: 200
+    model:
+      intercept: -2.5
+      weights:
+        bid_price: 0.8
+        media_ctr: 2.1
+        geo_ctr: 1.5
+        hour: 0.3
+        os_match: 0.6
+        device_match: 0.4
+  scoring:
+    enabled: true
+    on_error: skip
+    model_path: "/models/ctr_cvr.onnx"
+    fallback_ctr: 0.01
+    fallback_cvr: 0.005
+    feature_order:
+      - ctr_24h
+      - cvr_24h
+      - impressions_1h
+      - clicks_1h
+      - avg_ctr
+      - avg_cvr
+      - bid_price_norm
+      - hour_sin
+      - hour_cos
+      - os_encoded
+      - device_type_encoded
+  pricing:
+    enabled: true
+    on_error: skip
+    strategy: ecpm
+    oxbi_target_roas: 2.0
+    oxbi_pid:
+      kp: 0.3
+      ki: 0.05
+      kd: 0.1
+  pacing:
+    enabled: true
+    on_error: skip
+  budget_guard:
+    enabled: true
+    on_error: abort
+    prefreeze_multiplier: 1.2
+    safety_margin_pct: 5
+
+rta:
+  advertisers:
+    - id: 1
+      endpoint: "rta-advertiser-1:9090"
+      timeout_ms: 15
+
+budget:
+  enabled: true
+  bucket_count: 1440
+  reserve_ttl_sec: 300
+  refill_interval_sec: 60
+  max_reserved_ratio: 0.8
+  default_pacing: "even"
+
+roi:
+  oxbi_target_roas: 2.0
+  interval_sec: 300
+  pid:
+    kp: 0.3
+    ki: 0.05
+    kd: 0.1
+
+ai:
+  api_key: ""
+  base_url: "https://api.openai.com/v1"
+  model: "gpt-4o-mini"
+
+feature_store:
+  aggregate_interval_sec: 30
+
+consul:
+  address: ""
+  prefix: "opendsp"

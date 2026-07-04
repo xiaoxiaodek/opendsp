@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package adserver.v1;
+
+option go_package = "github.com/opendsp/opendsp/gen/adserver/v1;adserverv1";
+
+service RTAService {
+  rpc Query(RTARequest) returns (RTAResponse);
+}
+
+message RTARequest {
+  string request_id = 1;
+  string device_id = 2;
+  string media_id = 3;
+  int64 advertiser_id = 4;
+}
+
+message RTAResponse {
+  bool allowed = 1;
+  string reason = 2;
+}

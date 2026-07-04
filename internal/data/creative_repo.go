@@ -47,6 +47,12 @@ func (r *creativeRepo) Create(ctx context.Context, c *biz.Creative) error {
 	}
 	c.CreatedAt = row.CreatedAt.Time
 	c.UpdatedAt = row.UpdatedAt.Time
+
+	if c.AuditStatus != biz.AuditStatusPending {
+		if err := r.UpdateAuditStatus(ctx, c.ID, c.AuditStatus, c.AuditReason); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

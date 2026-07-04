@@ -57,7 +57,7 @@ func TestIqiyiBidFlow(t *testing.T) {
 
 	idx.AddAdGroup(ag, creatives)
 
-	engine := adserver.NewEngine(idx, freqCtrl)
+	engine := adserver.NewEngine(idx, freqCtrl, nil)
 	tracker := adserver.NewTracker(freqCtrl, nil)
 	server := adserver.NewServer(engine, tracker)
 
@@ -361,7 +361,7 @@ func TestAttributionFlow(t *testing.T) {
 
 	idx.AddAdGroup(ag, creatives)
 
-	engine := adserver.NewEngine(idx, freqCtrl)
+	engine := adserver.NewEngine(idx, freqCtrl, nil)
 	tracker := adserver.NewTracker(freqCtrl, nil)
 	server := adserver.NewServer(engine, tracker)
 

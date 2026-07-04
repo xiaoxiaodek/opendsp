@@ -40,8 +40,17 @@ func (r *balanceRepo) Recharge(ctx context.Context, advertiserID int64, amount f
 	if err != nil {
 		return nil, fmt.Errorf("recharge: %w", err)
 	}
-
 	balanceAfterVal := numericToFloat64Val(newBalance)
+
+	// Sync balance to Redis so the ad-server budget guard can read it
+	balanceKey := fmt.Sprintf("balance:%d", advertiserID)
+	cents := int64(balanceAfterVal * 100) // store in 分 (cents)
+	if r.data.Rdb != nil {
+		if err := r.data.Rdb.Set(ctx, balanceKey, cents, 0).Err(); err != nil {
+			return nil, fmt.Errorf("sync balance to redis: %w", err)
+		}
+	}
+
 	txType := biz.TxTypeRecharge
 
 	err = r.data.Queries.CreateBalanceTransaction(ctx, &dbsqlc.CreateBalanceTransactionParams{

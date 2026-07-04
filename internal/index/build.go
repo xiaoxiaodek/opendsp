@@ -110,6 +110,9 @@ func (idx *InvertedIndex) BuildFromDB(ctx context.Context, d *data.Data) error {
 	idx.ready.Store(true)
 	idx.mu.Unlock()
 
+	indexAdCount.Set(float64(len(newIdx.adGroups)))
+	indexVersion.Set(float64(idx.version.Load()))
+
 	return nil
 }
 

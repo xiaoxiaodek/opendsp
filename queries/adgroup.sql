@@ -26,5 +26,9 @@ FROM ad_group WHERE (sqlc.narg('campaign_id')::bigint IS NULL OR sqlc.narg('camp
 ORDER BY created_at DESC LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 
 -- name: ListActiveAdGroups :many
-SELECT id, campaign_id, name, bid_type, bid_price, daily_budget, freq_cap, freq_period, targeting, status, version
-FROM ad_group WHERE status = $1;
+SELECT ag.id, ag.campaign_id, ag.name, ag.bid_type, ag.bid_price, ag.daily_budget,
+       ag.freq_cap, ag.freq_period, ag.targeting, ag.status, ag.version,
+       c.advertiser_id AS advertiser_id, c.start_time AS campaign_start_time, c.end_time AS campaign_end_time
+FROM ad_group ag
+INNER JOIN campaign c ON c.id = ag.campaign_id
+WHERE ag.status = $1 AND c.status = $2;

@@ -7,16 +7,22 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/opendsp/opendsp/internal/config"
 	"github.com/opendsp/opendsp/internal/data"
 	"github.com/opendsp/opendsp/internal/index"
 	"github.com/opendsp/opendsp/internal/syncer"
 )
 
 func main() {
+	cfg, _, err := config.Load("config/app.yaml")
+	if err != nil {
+		log.Fatalf("config: %v", err)
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	d, cleanup, err := data.NewData(ctx)
+	d, cleanup, err := data.NewData(ctx, cfg.Database, cfg.Redis)
 	if err != nil {
 		log.Fatalf("data: %v", err)
 	}

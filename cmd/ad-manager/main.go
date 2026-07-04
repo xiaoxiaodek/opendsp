@@ -7,16 +7,21 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/opendsp/opendsp/internal/ai"
 	"github.com/opendsp/opendsp/internal/biz"
+	"github.com/opendsp/opendsp/internal/config"
 	"github.com/opendsp/opendsp/internal/data"
 	"github.com/opendsp/opendsp/internal/dmp"
+	clickhouseinfra "github.com/opendsp/opendsp/internal/infrastructure/persistence/clickhouse"
 	"github.com/opendsp/opendsp/internal/middleware"
 	"github.com/opendsp/opendsp/internal/service/admanager"
+	fraudhttp "github.com/opendsp/opendsp/internal/infrastructure/persistence/redis/fraud"
+	roiinfra "github.com/opendsp/opendsp/internal/infrastructure/persistence/postgres/roi"
 	pb "github.com/opendsp/opendsp/gen/admanager/v1"
 	filegatewaypb "github.com/opendsp/opendsp/gen/filegateway/v1"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -28,7 +33,12 @@ import (
 func main() {
 	ctx := context.Background()
 
-	d, cleanup, err := data.NewData(ctx)
+	cfg, _, err := config.Load("config/app.yaml")
+	if err != nil {
+		log.Fatalf("config: %v", err)
+	}
+
+	d, cleanup, err := data.NewData(ctx, cfg.Database, cfg.Redis)
 	if err != nil {
 		log.Fatalf("data: %v", err)
 	}
@@ -50,7 +60,8 @@ func main() {
 	resolver := dmp.NewAudienceResolver(tagStore, d.Rdb)
 	lookalike := dmp.NewLookalikeEngine(dmpRepo, tagStore)
 
-	campaignUC := biz.NewCampaignUseCase(campaignRepo, d.Rdb)
+	publisher := data.NewRedisPublisher(d.Rdb)
+	campaignUC := biz.NewCampaignUseCase(campaignRepo, publisher)
 	adGroupUC := biz.NewAdGroupUseCase(adGroupRepo, d.Rdb)
 	creativeUC := biz.NewCreativeUseCase(creativeRepo)
 	reportUC := biz.NewReportUseCase(reportRepo)
@@ -70,14 +81,8 @@ func main() {
 		dmpRepo, tagStore, resolver, lookalike, d,
 	)
 
-	grpcPort := os.Getenv("GRPC_PORT")
-	if grpcPort == "" {
-		grpcPort = "9091"
-	}
-	httpPort := os.Getenv("PORT")
-	if httpPort == "" {
-		httpPort = "8081"
-	}
+	grpcPort := strconv.Itoa(cfg.Server.GRPCPort)
+	httpPort := strconv.Itoa(cfg.Server.Port)
 
 	lis, err := net.Listen("tcp", ":"+grpcPort)
 	if err != nil {
@@ -112,7 +117,7 @@ func main() {
 	}
 
 	fgConn, err := grpc.NewClient(
-		getEnv("FILE_GATEWAY_ADDR", "file-gateway:9092"),
+		os.Getenv("FILE_GATEWAY_ADDR"),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
@@ -125,13 +130,40 @@ func main() {
 	syncHandler := admanager.NewSyncHandler(syncUC, syncRepo, creativeUC, adGroupUC, campaignUC)
 
 	httpMux := http.NewServeMux()
+	fraudHandler := fraudhttp.NewHTTPHandler(fraudhttp.NewBlacklistRepo(d.Rdb))
+	httpMux.Handle("/api/antifraud/blacklist", fraudHandler)
+	httpMux.Handle("/api/antifraud/blacklist/", fraudHandler)
+	eventsHandler := fraudhttp.NewEventsHandler(d.Pool)
+	httpMux.Handle("/api/antifraud/events", eventsHandler)
+	httpMux.Handle("/api/antifraud/stats", eventsHandler)
 	httpMux.Handle("/metrics", promhttp.Handler())
 	httpMux.Handle("/api/v1/upload/", uploadHandler)
 	httpMux.Handle("/api/v1/sync/", syncHandler)
 
+	roiHandler := admanager.NewROIHandler(roiinfra.NewConversionRepo(d.Pool))
+	httpMux.Handle("/api/roi/", roiHandler)
+
+	dpaHandler := admanager.NewDPAHandler()
+	httpMux.Handle("/api/dpa/", dpaHandler)
+
+	chClient, err := clickhouseinfra.NewClient(clickhouseinfra.Config{
+		Host:     cfg.ClickHouse.Host,
+		Port:     cfg.ClickHouse.Port,
+		Database: cfg.ClickHouse.Database,
+		Username: cfg.ClickHouse.Username,
+		Password: cfg.ClickHouse.Password,
+	})
+	if err != nil {
+		log.Printf("clickhouse: %v (settlement API disabled)", err)
+	} else {
+		chWriter := clickhouseinfra.NewWriter(chClient)
+		settlementHandler := admanager.NewSettlementHandler(chWriter)
+		httpMux.Handle("/api/settlement/", settlementHandler)
+	}
+
 	aiEnabled := os.Getenv("AI_ENABLED")
 	if aiEnabled != "false" {
-		llmClient := ai.NewLLMClient()
+		llmClient := ai.NewLLMClientWithConfig(cfg.AI.APIKey, cfg.AI.BaseURL, cfg.AI.Model)
 		toolRegistry := ai.NewToolRegistry(
 			campaignRepo, adGroupRepo, creativeRepo, reportRepo,
 			advertiserRepo, balanceRepo, adminRepo,
@@ -174,9 +206,3 @@ func main() {
 	httpServer.Shutdown(shutdownCtx)
 }
 
-func getEnv(key, def string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return def
-}
